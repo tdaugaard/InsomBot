@@ -1,26 +1,54 @@
 {
-  "discord": {
-    "email": "",
-    "password": ""
+    "discord": {
+        "email": "",
+        "password": ""
     },
-  "keywords": {
-    "Help": "!commands",
-    "Giphy": "!giphy",
-    "Imgur": "!img",
-    "Urban": "!define"
-  },
-  "giphy_key": "dc6zaTOxFJmzC",
-  "imgur_key": "",
-  "twitch": {
-    "client_id": "",
-    "username": "",
-    "password": "",
-    "scope": "user_read"
-  },
-  "database": {
-    "host": "127.0.0.1",
-    "database": "",
-    "user": "",
-    "password": ""
-  }
+    "allowed": "members",
+    "logger": {
+        "level": "info"
+    },
+    "date": {
+        "long": "YYYY-MM-DD HH:mm",
+        "short": "DD-MM-YYYY",
+        "human": "MMMM Do YYYY"
+    },
+    "query_timeout": 5,
+    "modules": {
+        "TestModule": {
+            "blacklisted": true
+        },
+        "Roll": {
+            "enabled": false
+        },
+        "Attendance": {
+            "enabled": true,
+            "roles": [
+                "Officer"
+            ],
+            "filterInactive": 30,
+            "defaultNumRaids": 12
+        },
+        "Manage": {
+            "enabled": true,
+            "roles": [
+                "Role of Server Owner"
+            ]
+        },
+        "Doge": {
+            "suchBaseMuchUrl": "http:/dogr.io/",
+            "manyMuchWow": [
+                "such",
+                "many",
+                "very",
+                "much"
+            ]
+        },
+    },
+    "warcraftlogs": {
+        "guild": "",
+        "realm": "",
+        "region": "",
+        "key": ""
+    },
+    "cacheDirectory": "/tmp/cache/"
 }

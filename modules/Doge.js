@@ -26,7 +26,7 @@ class DogeModule extends CommandModule {
         const dogeWords = this.config.manyMuchWow
         const manyMuchWow = shuffle(dogeWords).slice(0, Math.min(params.length, dogeWords.length))
         const dogeParams = manyMuchWow.map((v, i) => v + ' ' + params[i])
-        const endpoint = `https://yais.dk/r/http://localhost:9875/${dogeParams.join('/')}/wow.png?split=false`
+        const endpoint = `${this.config.suchBaseMuchUrl}${dogeParams.join('/')}/wow.png?split=false`
 
         request({
             url: endpoint,
