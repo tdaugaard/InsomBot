@@ -8,15 +8,36 @@
   },
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "mocha"
   },
   "dependencies": {
-    "discord.js": "^3.6.2",
-    "imgur-search": "^1.0.1",
-    "giphy-wrapper": "ptte/node-giphy",
-    "urban": "^0.2.4"
+    "array-difference": "0.0.1",
+    "array-intersection": "^0.1.2",
+    "async": "^2.1.4",
+    "cheerio": "^0.22.0",
+    "cli-table2": "^0.2.0",
+    "deferred": "^0.7.5",
+    "discord.js": "^10.0.1",
+    "dot-object": "^1.5.4",
+    "feedparser": "^1.1.5",
+    "median": "0.0.2",
+    "moment": "^2.17.0",
+    "numeral": "^1.5.6",
+    "pad": "^1.0.2",
+    "promise": "^7.1.1",
+    "request": "*",
+    "sort-by": "^1.1.1",
+    "sqlite3": "^3.1.8",
+    "urban": "^0.2.4",
+    "winston": "^2.3.0"
   },
   "keywords": [
-    "insombot"
-  ]
+    "discordbot"
+  ],
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "mocha": "^3.2.0"
+  }
 }
