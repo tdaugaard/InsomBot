@@ -5,7 +5,7 @@
 2. Rename `config.json.example` to `config.json` and fill in your credentials.
 3. Use `node index.js` to run, or set up something like https://github.com/Unitech/pm2 (`pm2 start --name 'DiscordBot' index.js`)
 
-All HTTP request made by the bot to various resources like Warcraf Logs, Dark Legacy Comics, WoW Token Info, etc. is _cached_ using `cached-request` and their `time-to-live` value is hardcoded in the individual modules.
+All HTTP request made by the bot to various resources like Warcraft Logs, Dark Legacy Comics, WoW Token Info, etc. is _cached_ using `cached-request` and their `time-to-live` value is hardcoded in the individual modules.
 
 ## Tests
 Run `npm test` to run available '_unit tests_'.
@@ -25,12 +25,14 @@ A module can be blacklisted from being loaded by setting the key `blacklisted: t
 
 If the module is simply disabled (`"enabled": false`), it may still be loaded during run-time using the `Manage` module via `!enmod`, unless _that_ has been disabled.
 
-#### Default Modules
+### Default Modules
 
-##### Attendance
+#### Attendance
 Collects and shows raid attendance from Warcraft Logs combat reports as configured in `config.json`.
 
 _Configuration_
+
+See also `warcraftlogs` configuration for `Wcl` module.
 
 ```json
 "Attendance": {
@@ -44,30 +46,27 @@ _Configuration_
 }
 ```
 
-See also `warcraftlogs` configuration for `Wcl` module.
+If `filterInactive` non-zero, the attendance list will exclude any characters from the report which has not attended a raid in that number of days.
 
 `sameNameMapping` may be used to map alt characters to main characters to make sure they appear _as one_ in attendance records.
 
-_Trigger_: `!att <num_raids = 12>`
-Shows attendance percentages.  
-_Trigger_: `!alt <alt_name> <main_name>`
-Map an alt character to a main  
-_Trigger_: `!alt <alt_name> null`
-Remove a an alt character mapping
+_Trigger_: `!att <num_raids = 12>` Shows attendance percentages.  
+_Trigger_: `!alt <alt_name> <main_name>` Map an alt character to a main  
+_Trigger_: `!alt <alt_name> null` Remove a an alt character mapping
 
-##### Break
+#### Break
 Sets a break timer (per channel)
 
 _Trigger_: `!break <minutes>` Set a break timer that will notify @here when it expires.  
 _Trigger_: `!break` Cancel a previously set break timer.
 
-##### DarkLegacyComics
+#### DarkLegacyComics
 Shows the latest (or specific) comic from http://darklegacycomics.com/
 
 _Trigger_: `!dlc` Show latest comic  
 _Trigger_: `!dlc <id>` Show a specific comic using its numeric ID
 
-##### Doge
+#### Doge
 Uses dogr.io (Doge-as-a-service) to create Doge image macros.
 
 _Configuration_
@@ -92,42 +91,42 @@ It will _automagically_ randomly prepend words from `Doge.manyMuchWow` to the wo
 
 Example: `!doge git commit` _could_ create an image saying '_such git_' '_many commit_' '_wow_'
 
-##### Flip
+#### Flip
 Flips a table (or puts it back).
 
 _Trigger_: `!flip` Flips a table.  
 _Trigger_: `!flip fix` Puts the table back. Chill, bro.
 
-##### Help
+#### Help
 Displays available commands and their usage.
 
 _Trigger_: `!help` Displays help for all modules/triggers available to you.  
 _Trigger_: `!help <module>` Displays help for the given module, which may contain additional help as well.
 
-##### Rekt
+#### Rekt
 Shows a list of ways people are REKT.
 
 _Trigger_: `!rekt`  
 _Trigger_: `!rekt <number of rekts>`
 
-##### Roll
+#### Roll
 Roll a random number between 0 - 100 (or optionally another range)
 
 _Trigger_: `!roll` Displays a random number between 0 - 100  
 _Trigger_: `!roll 200` Displays a random number between 0 - 200  
 _Trigger_: `!roll 200 400` Displays a random number between 200 - 400  
 
-##### Token
+#### Token
 Display latest WoW Token price information from https://wowtoken.info/.
 
 _Trigger_: `!token`
 
-##### Urban
+#### Urban
 Looks up a keyword on Urban Dictionary.
 
 Usage: `!urban <keywords>`
 
-##### Wcl
+#### Wcl
 Displays links to recent combat log reports from Warcraft Logs.
 
 _Trigger_: `!wcl` Shows 3 reports.  
@@ -143,7 +142,7 @@ _Configuration_:
     "key": "<WCL API key>"
 }
 ```
-##### Manage
+#### Manage
 Admin module to enable/disable modules as well as restart the bot.
 
 _Trigger_: `!mods` Display module status  
