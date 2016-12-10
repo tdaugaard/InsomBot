@@ -25,6 +25,12 @@ A module can be blacklisted from being loaded by setting the key `blacklisted: t
 
 If the module is simply disabled (`"enabled": false`), it may still be loaded during run-time using the `Manage` module via `!enmod`, unless _that_ has been disabled.
 
+If you attempt to load two modules that define the same trigger, both modules will be loaded, but only the first module will be able to register the trigger globally. This simply means that if Module1 and Module2 defines `!bot`, then Module2 will just not be able to handle that trigger.
+
+_However_, if you execute `!dismod Module1`, `!reload Module2`, then `!enmod Module1` (via `Manage`) then the situation is reversed.
+
+You cannot manage the load order of modules using the configuration file - it isn't normal operation to have modules define conflicting triggers.
+
 ### Default Modules
 
 #### Attendance
@@ -73,7 +79,7 @@ _Configuration_
 
 ```json
 "Doge": {
-    "suchBaseMuchUrl": "http:/dogr.io/",
+    "suchBaseMuchUrl": "http://dogr.io/",
     "manyMuchWow": [
         "such",
         "many",
