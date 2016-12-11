@@ -14,6 +14,7 @@ const moment = require('moment')
 const difference = require('array-difference')
 const PlayerAttendance = require('./util/PlayerAttendance')
 const RaidAttendance = require('./util/RaidAttendance')
+const MessageEmbed = require('./util/MessageEmbed')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -70,7 +71,7 @@ class AttendanceModule extends CommandModule {
 
     _getReports (params) {
         const defer = deferred()
-        const endpoint = 'https://www.warcraftlogs.com/v1/reports/guild/' + [this.bot.warcraftlogs.guild, this.bot.warcraftlogs.realm, this.bot.warcraftlogs.region].join('/')
+        const endpoint = 'https://www.warcraftlogs.com/v1/reports/guild/' + [this.bot.config.warcraftlogs.guild, this.bot.config.warcraftlogs.realm, this.bot.config.warcraftlogs.region].join('/')
         const numberOfRaids = Common.getIntegerBetween(params[0], {min: 1, default: this.config.defaultNumRaids})
 
         cachedRequest({
@@ -79,7 +80,7 @@ class AttendanceModule extends CommandModule {
             useQuerystring: true,
             ttl: 30000,
             time: true,
-            qs: {'api_key': this.bot.warcraftlogs.key}
+            qs: {'api_key': this.bot.config.warcraftlogs.key}
         }, (err, res, reports) => {
             Common.logRequestCompletion(logger, endpoint, err, res)
 
@@ -89,7 +90,8 @@ class AttendanceModule extends CommandModule {
                 }
 
                 this._collectAttendance(reports)
-                    .then(defer.resolve, defer.reject)
+                    .then(defer.resolve)
+                    .catch(defer.reject)
             } else {
                 defer.reject(err)
             }
@@ -157,7 +159,7 @@ class AttendanceModule extends CommandModule {
             ttl: 31536000000,
             timeout: 5000,
             time: true,
-            qs: {'api_key': this.bot.warcraftlogs.key},
+            qs: {'api_key': this.bot.config.warcraftlogs.key},
             agentOptions: {
                 keepAlive: false
             }
@@ -256,7 +258,61 @@ class AttendanceModule extends CommandModule {
         return players
     }
 
+    _getAttendanceTable (attendance) {
+        const table = new Table({
+            head: ['Character', 'Raids', 'Fights'],
+            chars: { 'top': '', 'top-mid': '', 'top-left': '', 'top-right': '', 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '', 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '┼', 'right': '', 'right-mid': '', 'middle': '|' },
+            colAligns: ['left', 'right', 'right'],
+            style: {
+                head: [],
+                border: [],
+                compact: true
+            }
+        })
+        let players = []
+
+        for (const player of Common.objectIterator(attendance.players)) {
+            players.push(player)
+        }
+
+        players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
+        if (players.length > 25) {
+            players = players.slice(0, 25)
+        }
+
+        players.forEach(v => {
+            table.push([
+                v.name,
+                v.raids.num + ' of ' + pad(2, v.raids.possible) + ' (' + pad(4, Math.round(v.raids.pct) + '%') + ')',
+                v.fights.num + ' (' + pad(4, Math.round(v.fights.pct) + '%') + ')'
+            ])
+        })
+
+        return table
+    }
+
     _assembleAttendanceData (attendance) {
+        const table = this._getAttendanceTable(attendance)
+        const attendedOnAlts = this._getAlsoAttendedOnAlts(attendance.characterNames)
+        const plusThisManyMore = Object.keys(attendance.players).length - table.length
+        const embed = new MessageEmbed(`Attendance situation for the past ${attendance.raids.length} raids (${attendance.fights} fights)`)
+
+        embed.color = 3447003
+        embed.addField('Attendance Table', '```' + table.toString() + '```')
+
+        if (plusThisManyMore > 0) {
+            // embed.addField()
+            // out += ' … and ' + plusThisManyMore + ' more not shown.'
+        }
+
+        if (attendedOnAlts.length) {
+            embed.setFooter('These players also attended on alts', '_' + attendedOnAlts.join('_, _') + '_')
+        }
+
+        return embed
+    }
+
+    _assembleAttendanceDataEx (attendance) {
         const table = new Table({
             head: ['Character', 'Raids', 'Fights'],
             chars: { 'top': '', 'top-mid': '', 'top-left': '', 'top-right': '', 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '', 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '┼', 'right': '', 'right-mid': '', 'middle': '|' },
@@ -382,7 +438,25 @@ class AttendanceModule extends CommandModule {
             return this
                 ._getReports(params)
                 .then(this._filterInactiveMembers.bind(this))
+                .then(this._assembleAttendanceDataEx.bind(this))
+        }
+
+        if (trigger === 'attend') {
+            const defer = deferred()
+
+            this
+                ._getReports(params)
+                .then(this._filterInactiveMembers.bind(this))
                 .then(this._assembleAttendanceData.bind(this))
+                .then(embed => {
+                    message.channel.sendMessage('', {embed: embed})
+                        .then(() => {
+                            defer.resolve(false)
+                        })
+                        .catch(defer.reject)
+                })
+
+            return defer.promise
         }
     }
 }

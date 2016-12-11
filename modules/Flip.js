@@ -9,7 +9,7 @@ class FlipModule extends CommandModule {
         this.addTrigger('!flip', {
             'short': 'Flip a table, or put it back',
             'params': [
-                'how = flip, fix'
+                'fix (put it back)'
             ]
         })
     }
@@ -18,10 +18,10 @@ class FlipModule extends CommandModule {
         const params = this._getParams(message)
 
         if (params.length) {
-            return Promise.resolve('┬─┬﻿ ノ( ゜-゜ノ)')
+            return Promise.resolve({content: '┬─┬﻿ ノ( ゜-゜ノ)'})
         }
 
-        return Promise.resolve('(╯°□°）╯︵ ┻━┻')
+        return Promise.resolve({content: '(╯°□°）╯︵ ┻━┻'})
     }
 }
 

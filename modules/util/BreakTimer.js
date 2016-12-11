@@ -9,18 +9,18 @@ class BreakTimer {
     }
 
     reset (timeout, cb) {
-        this.cb = cb
+        this.expires = moment().add(timeout, 'second')
 
-        this.start = moment()
-
-        this.expires = this.start.add(timeout, 'second')
+        if (cb) {
+            this.cb = cb
+        }
     }
 
     expired () {
         const isExpired = moment().isAfter(this.expires)
 
         if (isExpired) {
-            Promise.resolve(this.cb()).catch(() => {})
+            Promise.resolve(this.cb(this)).catch(() => {})
         }
 
         return isExpired

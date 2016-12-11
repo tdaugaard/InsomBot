@@ -53,19 +53,28 @@ class WclModule extends CommandModule {
             .getReports()
             .then(reports => {
                 const numberOfReports = Common.getIntegerBetween(params[0], {min: 1, max: 10, default: 3})
-                let out = "here's the " + numberOfReports + ' most recent reports:\n\n'
+                const embed = {
+                    title: 'Warcraft Logs Combat Reports',
+                    color: 3447003,
+                    fields: [],
+                    provider: {
+                        name: 'WarcraftLogs',
+                        url: 'http://warcraftlogs.com/'
+                    }
+                }
+                // let out = "here's the " + numberOfReports + ' most recent reports:\n\n'
 
                 reports.slice(-numberOfReports).forEach(v => {
-                    const time = moment(v.start).format(this.bot.date.human)
-                    if (v.start >= recentTime) {
-                        out += ':new: '
-                    }
+                    const time = moment(v.start).format(this.bot.config.date.human)
+                    const prefix = v.start >= recentTime ? ':new: ' : ''
 
-                    out += '**' + v.title + '** (_' + time + '_)\n'
-                    out += 'https://www.warcraftlogs.com/reports/' + v.id + '\n\n'
+                    embed.fields.push({
+                        name: time,
+                        value: `${prefix}[${v.title}](https://www.warcraftlogs.com/reports/${v.id}) (${v.id})`
+                    })
                 })
 
-                return out
+                return {embed: {embed: embed}}
             })
     }
 }

@@ -38,11 +38,7 @@ class BreakModule extends CommandModule {
     }
 
     _checkTimers () {
-        for (var k in this.timers) {
-            if (!this.timers.hasOwnProperty(k)) {
-                continue
-            }
-
+        for (const k of Object.keys(this.timers)) {
             if (this.timers[k].expired()) {
                 delete this.timers[k]
             }
@@ -68,12 +64,6 @@ class BreakModule extends CommandModule {
             this.timers[msg.channel.id] = new BreakTimer(seconds, expireCallback)
         }
 
-        logger.verbose("BreakModule: Timer %sset for channel '%s' with %s seconds.",
-            channelHasTimer ? 're' : '',
-            msg.channel.name,
-            numeral(seconds).format('0,0')
-        )
-
         return Promise.resolve('@here ' + minutes + ' minute' + (minutes > 1 ? 's' : '') + ' break timer set.')
     }
 
@@ -81,7 +71,6 @@ class BreakModule extends CommandModule {
         if (this.timers.hasOwnProperty(msg.channel.id)) {
             delete this.timers[msg.channel.id]
 
-            logger.verbose("BreakModule: Timer reset for channel '%s'.", msg.channel.name)
             return Promise.resolve('@here break timer reset.')
         }
 
@@ -89,8 +78,7 @@ class BreakModule extends CommandModule {
     }
 
     _timerExpired (msg) {
-        logger.verbose("BreakModule: Timer set for channel '%s' expired.", msg.channel.name)
-        this.bot.replyMessage(msg, '@here break is over, get back to whatever you were doing!')
+        this.bot.sendReply(msg, '@here break is over, get back to whatever you were doing!')
     }
 
     Message (message) {

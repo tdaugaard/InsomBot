@@ -43,6 +43,13 @@ class ManageModule extends CommandModule {
             .addTrigger('!save', {
                 'short': 'Save current module configuration to `config.json`'
             })
+            .addTrigger('!say', {
+                'short': 'Send a message to a channel',
+                'params': [
+                    'channel_name',
+                    'message'
+                ]
+            })
             .addTrigger('!cvar', {
                 'short': 'Display or modify a configuration variable',
                 'params': [
@@ -283,6 +290,7 @@ class ManageModule extends CommandModule {
             case 'triggers': return this._displayTriggers()
             case 'save': return this._saveConfig()
             case 'cvar': return this._modifyConfiguration(params)
+            //case 'say' :return this.
             case 'restart': return this._restartBot()
         }
     }

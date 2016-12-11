@@ -12,13 +12,13 @@ class DogeModule extends CommandModule {
         super(parent, config)
 
         this.addTrigger('!doge', {
-            'short': 'Doge-as-a-service. Such functionality. Much help. Very doge. Wow.',
-            'params': [
-                'word',
-                'word',
-                'word'
-            ]
+            'short': 'Doge-as-a-service. Such help. Much doge. Wow.',
+            'params': Array.from(new Array(config.manyMuchWow.length), () => 'word')
         })
+    }
+
+    getHelp () {
+        return 'Doge will help you out a bit and prepend every word you give him with one of [_' + shuffle(this.config.manyMuchWow).join('_, _') + '_]'
     }
 
     _getDoge (params) {
@@ -46,22 +46,14 @@ class DogeModule extends CommandModule {
     }
 
     Message (message) {
-        const defer = deferred()
         const params = this._getParams(message)
 
         if (!params.length) {
             return Promise.reject('I ain\'t got nothing to work with _bruh_.')
         }
 
-        this._getDoge(params)
-            .then(doge => {
-                return message.channel.sendFile(doge, "suchdogemuchwow.png")
-                    .then(() => defer.resolve(false))
-                    .catch(defer.reject)
-            })
-            .catch(defer.reject)
-
-        return defer.promise
+        return this._getDoge(params)
+            .then(doge => ({file: doge}))
     }
 }
 
