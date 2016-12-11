@@ -1,5 +1,4 @@
 'use strict'
-var myself
 
 const env = require('./config.json')
 const DiscordBot = require('./bot.js')
@@ -22,12 +21,10 @@ function exitHandler () {
 
 discordjs
     .on('ready', function () {
-        myself = discordjs.user
-
         logger.info('Ready to begin! Serving in %d channels as %s#%d',
             this.channels.array().length,
-            myself.username,
-            myself.discriminator
+            this.user.username,
+            this.user.discriminator
         )
     })
 
@@ -35,7 +32,7 @@ discordjs
         const channelType = msg.channel.type
 
         // We won't be processing our own messages.
-        if (msg.author.username === myself.username && msg.author.discriminator === myself.discriminator) {
+        if (msg.author.username === this.user.username && msg.author.discriminator === this.user.discriminator) {
             return
         }
 
@@ -49,26 +46,22 @@ discordjs
             return
         }
 
-        bot.checkMessageForKeywords(msg.content)
-            .then(keyword => {
-                // Messages which aren't meant for the bot will simply be ignored.
-                if (!keyword) {
-                    return
+        // msg.channel.startTyping()
+
+        //discordjs.startTyping(msg.channel)
+
+        bot.processMessage(msg)
+            .then(bot.sendReply.bind(bot, msg))
+            //.then(discordjs.stopTyping(msg.channel))
+            .catch(err => {
+                //discordjs.stopTyping(msg.channel)
+                // msg.channel.stopTyping()
+
+                if (err) {
+                    bot.sendReply(msg, err)
                 }
-
-                var takesTooLongTimeout
-
-                if (env.query_timeout > 0) {
-                    takesTooLongTimeout = setTimeout(e => {
-                        bot.replyMessage(msg, 'your query is taking a bit longer than anticipated, please wait while I get my shit together.')
-                    }, parseInt(env.query_timeout) * 1000)
-                }
-
-                bot.runKeywordFunction(keyword, msg)
-                    .then(reply => bot.replyMessage(msg, reply))
-                    .catch(err => bot.replyMessage(msg, "that's a negative: " + err))
-                    .then(() => clearTimeout(takesTooLongTimeout))
             })
+
     })
 
     .on('disconnected', function () {

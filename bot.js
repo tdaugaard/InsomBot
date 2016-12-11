@@ -4,6 +4,7 @@ const glob = require('glob')
 const colors = require('colors')
 const path = require('path')
 const fs = require('fs')
+const util = require('util')
 const EventEmitter = require('events').EventEmitter
 
 class DiscordBot extends EventEmitter {
@@ -189,53 +190,71 @@ class DiscordBot extends EventEmitter {
         return this.triggers
     }
 
-    replyMessage (message, reply) {
-        if (!reply) {
-            return
+    sendChannelMessage (channelId, reply) {
+        const channel = this.discord.channels.get(channelId)
+        let promise
+
+        if (reply.hasOwnProperty('embed')) {
+            promise = channel.sendMessage(reply.content || '', reply.embed || {})
+        } else {
+            promise = channel.sendMessage(reply)
         }
 
-        message
-            .reply(reply)
-            .then(msg => {
-                if (msg.channel.type === 'text') {
-                    logger.info('Replied to %s in channel %s',
-                        this.getAuthorString(message.author),
-                        this.getChannelString(msg.channel)
-                    )
-                } else if (msg.channel.type === 'dm') {
-                    logger.info('Replied to direct message from %s: %s',
-                        this.getAuthorString(msg.channel.recipient),
-                        colors.white.bold(reply)
-                    )
-                }
-            })
-            .catch(err => {
-                logger.error(err)
-            })
+        logger.info('Sent message to channel %s',
+            this.getChannelString(channel)
+        )
+
+        return promise
+    }
+
+    sendReply (message, reply) {
+        let promise
+
+        if (!reply) {
+            return Promise.reject()
+        }
+
+        if (util.isString(reply)) {
+            promise = message.reply(reply)
+
+            if (message.channel.type === 'text') {
+                logger.info('Replied to %s in channel %s',
+                    this.getAuthorString(message.author),
+                    this.getChannelString(message.channel)
+                )
+            } else if (message.channel.type === 'dm') {
+                logger.info('Replied to direct message from %s: %s',
+                    this.getAuthorString(message.channel.recipient),
+                    colors.white.bold(reply)
+                )
+            }
+
+        } else if (util.isObject(reply)) {
+            if (reply.hasOwnProperty('file')) {
+                promise = message.channel.sendFile(reply.file, null, reply.content || '')
+            } else {
+                promise = message.channel.sendMessage(reply.content || '', reply.embed || {})
+            }
+
+            logger.info('Sent message to channel %s on behalf of %s',
+                this.getChannelString(message.channel),
+                this.getAuthorString(message.author)
+            )
+        }
+
+        return promise
     }
 
     getChannelString (channel) {
         return colors.cyan.bold('#' + channel.name)
     }
 
-    _escapeMarkDown (str) {
-        return str.replace(/[*_~]/g, '\\$&')
-    }
-
-    checkMessageForKeywords (message) {
-        var token = message.split(' ', 2)[0]
-
-        if (this.triggers.hasOwnProperty(token)) {
-            return Promise.resolve(token)
-        }
-
-        return Promise.resolve(false)
-    }
-
     getModuleByTrigger (value) {
         if (this.triggers.hasOwnProperty(value)) {
             return this.modules[this.triggers[value]]
         }
+
+        return false
     }
 
     getModuleByName (value) {
@@ -249,8 +268,14 @@ class DiscordBot extends EventEmitter {
                colors.gray.bold('#' + user.discriminator)
     }
 
-    runKeywordFunction (trigger, message) {
+    processMessage (message) {
+        const trigger = message.content.split(' ', 2)[0]
         const module = this.getModuleByTrigger(trigger)
+
+        if (!module) {
+            return Promise.reject()
+        }
+
         const permission = module.allowed(message.member)
         const logLevel = permission ? 'info' : 'warn'
 
@@ -262,14 +287,11 @@ class DiscordBot extends EventEmitter {
             colors.yellow(message.content)
         )
 
-        if (permission) {
-            return new Promise((resolve, reject) => {
-                module.Message(message)
-                    .then(resolve, reject)
-            })
+        if (!permission) {
+            return Promise.reject('Access denied.')
         }
 
-        return Promise.reject('Access denied.')
+        return module.Message(message)
     }
 }
 
