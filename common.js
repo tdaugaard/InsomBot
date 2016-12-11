@@ -35,6 +35,28 @@ class Common {
 
         return value
     }
+
+    static relativeTime (ms) {
+        const divisors = [
+            {d: 86400, n: 'd'},
+            {d: 3600,  n: 'h'},
+            {d: 60,    n: 'm'}
+        ]
+        let values = []
+
+        ms /= 1000
+
+        for (const divisor of divisors) {
+            const value = Math.floor(ms / divisor.d)
+
+            if (value) {
+                ms -= value * divisor.d
+                values.push(value + ' ' + divisor.n)
+            }
+        }
+
+        return values.slice(0, 2).join(' ')
+    }
 }
 
 module.exports = Common
