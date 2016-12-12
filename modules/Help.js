@@ -70,7 +70,7 @@ class HelpModule extends CommandModule {
         let result = ''
 
         if (module.roles.length) {
-            moduleHeader += ' (Only _' + module.roles.join('_, _') + '_)'
+            moduleHeader += ` (Only _${module.roles.join('_, _')}_)`
         }
 
         for (let t in triggers) {
@@ -80,7 +80,7 @@ class HelpModule extends CommandModule {
 
             if (triggers[t].hasOwnProperty('params')) {
                 triggers[t].params.forEach(v => {
-                    triggerHelp += ' <' + escapeMarkdown(v) + '>'
+                    triggerHelp += ` <${v}>`
                 })
             }
 
