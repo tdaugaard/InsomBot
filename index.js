@@ -4,28 +4,52 @@ const env = require('./config.json')
 const DiscordBot = require('./bot.js')
 const Discord = require('discord.js')
 const logger = require('./logger.js')
+
+logger.info('Connecting to Discord.')
+
 const discordjs = new Discord.Client()
-const bot = new DiscordBot(env, discordjs)
+let bot
+let attemptedExit = false
 
 process
+    .on('SIGTERM', terminateProcess)
     .on('SIGINT', exitHandler)
-    .on('exit', exitHandler)
+    //.on('exit', exitHandler)
     .on('uncaughtException', r => logger.error(r))
 
-function exitHandler () {
-    logger.info('Shutting down.')
+function terminateProcess () {
+    logger.info('Terminating.')
 
     discordjs.destroy()
     process.exit(0)
 }
 
+function exitHandler () {
+    if (attemptedExit) {
+        logger.error('Unclean shutdown, but forcing as requested.')
+        process.exit(0)
+        return
+    }
+
+    attemptedExit = true
+    setTimeout(() => { attemptedExit = false }, 5000)
+
+    bot.destroy()
+    discordjs.destroy()
+
+    logger.info('Shutting down.')
+    process.exit(0)
+}
+
 discordjs
     .on('ready', function () {
-        logger.info('Ready to begin! Serving in %d channels as %s#%d',
+        logger.info('Connected! Serving in %d channels as %s#%d',
             this.channels.array().length,
             this.user.username,
             this.user.discriminator
         )
+
+        bot = new DiscordBot(env, this)
     })
 
     .on('message', function (msg) {
