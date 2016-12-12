@@ -3,6 +3,7 @@
 const CommandModule = require('../CommandModule')
 const Common = require('../common')
 const logger = require('../logger')
+const colors = require('colors')
 const Raffle = require('./util/Raffle')
 const MessageEmbed = require('./util/MessageEmbed')
 const numeral = require('numeral')
@@ -56,7 +57,7 @@ class RollModule extends CommandModule {
 
     _loadRaffles () {
         this.bot.storage.valuesWithKeyMatch(/^raffle_/).forEach(data => {
-            logger.info(`RollModule: Loading saved raffle for channel #${data.channel.name}, expires on ${moment(data.end)}`)
+            logger.info('→'.blue.bold + ` Restoring raffle for channel #${data.channel.name}, expires on ${moment(data.end)}`)
             let raffle = this._newRaffle(data.about, data.author, data.channel)
             raffle.restore(data)
             this.raffles[data.channel.id] = raffle
@@ -81,7 +82,8 @@ class RollModule extends CommandModule {
 
         return this.bot.sendChannelMessage(
                 msg.channel.id,
-                `@everyone <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
+                this.config.raffleNotify +
+                ` <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
                 ' Type `!roll` to participate in the draw.' +
                 ` The raffle will automagically end in ${Common.relativeTime(moment(raffle.end).diff())} unless ${raffle.author.username} ends it earlier.` +
                 ' Any ties will be solved by re-rolling, naturally =)' +
@@ -162,7 +164,7 @@ class RollModule extends CommandModule {
 
         raffle.endRaffle()
 
-        return Promise.resolve({content: `@everyone the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
+        return Promise.resolve({content: this.config.raffleNotify + ` the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
     }
 
     _getRaffle (channel) {
@@ -189,7 +191,6 @@ class RollModule extends CommandModule {
 
         const embed = new MessageEmbed(`Raffle by ${raffle.author.username}`)
 
-console.log(raffle)
         embed.addField('Prize', `**${raffle.about}**`, true)
         embed.addField('Expires', 'In ' + Common.relativeTime(moment(raffle.end).diff()), true)
 
