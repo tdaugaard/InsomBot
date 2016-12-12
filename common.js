@@ -40,7 +40,8 @@ class Common {
         const divisors = [
             {d: 86400, n: 'd'},
             {d: 3600,  n: 'h'},
-            {d: 60,    n: 'm'}
+            {d: 60,    n: 'm'},
+            {d: 1,     n: 's'}
         ]
         let values = []
 
@@ -51,7 +52,7 @@ class Common {
 
             if (value) {
                 ms -= value * divisor.d
-                values.push(value + ' ' + divisor.n)
+                values.push(value + divisor.n)
             }
         }
 
