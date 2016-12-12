@@ -1,6 +1,7 @@
-const logger = require('../logger')
-const Common = require('../common')
-const CommandModule = require('../CommandModule')
+'use strict'
+
+const logger = require('../../../logger')
+const Common = require('../../../common')
 const FeedParser = require('feedparser')
 const cheerio = require('cheerio')
 const deferred = require('deferred')
@@ -8,21 +9,20 @@ const request = require('request')
 const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
 
-class DarkLegacyComicsModule extends CommandModule {
-    constructor (parent, config) {
-        super(parent, config)
+class DarkLegacyComicsComic {
+    constructor(module) {
+        cachedRequest.setCacheDirectory(module.bot.config.cacheDirectory)
 
-        cachedRequest.setCacheDirectory(this.bot.config.cacheDirectory)
-
-        this.addTrigger('!dlc', {
-            'short': 'Display link to latest Dark Legacy Comics .. comic.',
+        module.addTrigger('!dlc', {
+            'short': 'Latest Dark Legacy Comics',
+            'provider': 'DarkLegacyComics',
             'params': [
                 'comic_id (optional)'
             ]
         })
     }
 
-    _getLatestComic () {
+    getLatestComic () {
         const defer = deferred()
         const endpoint = 'http://www.darklegacycomics.com/feed.xml'
         const feedparser = new FeedParser()
@@ -52,7 +52,7 @@ class DarkLegacyComicsModule extends CommandModule {
                     publishDateString = 'today'
                 }
 
-                defer.resolve(`${title} is **${mostRecentComic.title}** from ${publishDateString}:\n${imageUrl}`)
+                defer.resolve({content: `${title} is **${mostRecentComic.title}** from ${publishDateString}`, file: imageUrl})
             })
 
         cachedRequest({
@@ -71,7 +71,7 @@ class DarkLegacyComicsModule extends CommandModule {
         return defer.promise
     }
 
-    _getSpecificComic (comicId) {
+    getSpecificComic (comicId) {
         const defer = deferred()
         const endpoint = `http://www.darklegacycomics.com/${comicId}`
 
@@ -102,18 +102,6 @@ class DarkLegacyComicsModule extends CommandModule {
 
         return defer.promise
     }
-
-    Message (message) {
-        const params = this._getParams(message)
-
-        if (params.length) {
-            return this._getSpecificComic(parseInt(params[0]))
-        }
-
-        return this._getLatestComic(params)
-    }
 }
 
-module.exports = (parent, config) => {
-    return new DarkLegacyComicsModule(parent, config)
-}
+module.exports = DarkLegacyComicsComic
