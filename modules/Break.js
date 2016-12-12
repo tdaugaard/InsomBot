@@ -31,9 +31,15 @@ class BreakModule extends CommandModule {
         }
     }
 
+    getHelp () {
+        return 'This allows you to set a timer that, upon expiration, will notify \\@here. There can only be one timer per channel.' +
+               '\nYou can cancel the timer by running `!break` without arguments.' +
+               '\nIf the bot is restarted, the timer will expire immediately and will not resume when the bot is running again.'
+    }
+
     _loadTimers () {
         this.bot.storage.valuesWithKeyMatch(/^breaktimer_/).forEach(timer => {
-            logger.debug(`BreakTimer: Loading saved timer for channel #${timer.channel.name}, expires on ${moment(timer.end)}`)
+            logger.debug('→'.blue.bold + ` Restoring timer for channel #${timer.channel.name}, expires on ${moment(timer.end)}`)
             this.timers[timer.channel.id] = this._newTimer(timer.end, timer.author, timer.channel)
         })
     }
@@ -41,12 +47,6 @@ class BreakModule extends CommandModule {
     _newTimer (end, author, channel) {
         return new BreakTimer(end, author, channel)
             .on('expire', this._timerExpired.bind(this))
-    }
-
-    getHelp () {
-        return 'This allows you to set a timer that, upon expiration, will notify \\@here. There can only be one timer per channel.' +
-               '\nYou can cancel the timer by running `!break` without arguments.' +
-               '\nIf the bot is restarted, the timer will expire immediately and will not resume when the bot is running again.'
     }
 
     _setTimer (msg, minutes) {
@@ -88,12 +88,18 @@ class BreakModule extends CommandModule {
     Message (message) {
         const params = this._getParams(message)
         const timeout = params.length ? parseInt(params[0]) : 0
+        const timer = this.timers[message.channel.id]
+
+        if (!params.length && timer) {
+            const timeLeft = Common.relativeTime(moment(timer.end).diff(), true)
+            return Promise.resolve(`there's ${timeLeft} left of the break.`)
+        }
 
         if (isNaN(timeout) || timeout < 0) {
             return Promise.reject('Please enter positive number')
         }
 
-        if (!timeout) {
+        if (timeout === 0) {
             return this._clearTimer(message)
         }
 
