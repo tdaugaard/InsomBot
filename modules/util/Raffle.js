@@ -16,6 +16,8 @@ class Raffle extends BreakTimer {
     restore (data) {
         Object.assign(this, data)
 
+        this.reset(this.end)
+
         return this
     }
 
