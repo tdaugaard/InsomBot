@@ -2,6 +2,7 @@
 
 const numeral = require('numeral')
 const colors = require('colors')
+const moment = require('moment')
 const logger = require('../logger')
 const Common = require('../common')
 const CommandModule = require('../CommandModule')
@@ -20,31 +21,26 @@ class BreakModule extends CommandModule {
             ]
         })
 
-        this._checkTimers()
+        this._loadTimers()
     }
 
     destructor () {
-        const numberOfTimers = Object.keys(this.timers).length
-
-        if (!numberOfTimers) {
-            return
+        for (const k of Object.keys(this.timers)) {
+            logger.info(`BreakTimer: Saving break timer for channel #${this.timers[k].channel.name}`)
+            this.bot.storage.setItemSync(`breaktimer_${k}`, this.timers[k].serialize())
         }
+    }
 
-        logger.info('Expiring ' + colors.green.bold(numberOfTimers) + ' active timers.')
-
-        Common.objectIterator(timer => {
-            timer.expire()
+    _loadTimers () {
+        this.bot.storage.valuesWithKeyMatch(/^breaktimer_/).forEach(timer => {
+            logger.debug(`BreakTimer: Loading saved timer for channel #${timer.channel.name}, expires on ${moment(timer.end)}`)
+            this.timers[timer.channel.id] = this._newTimer(timer.end, timer.author, timer.channel)
         })
     }
 
-    _checkTimers () {
-        for (const k of Object.keys(this.timers)) {
-            if (this.timers[k].expired()) {
-                delete this.timers[k]
-            }
-        }
-
-        setTimeout(this._checkTimers.bind(this), 1000)
+    _newTimer (end, author, channel) {
+        return new BreakTimer(end, author, channel)
+            .on('expire', this._timerExpired.bind(this))
     }
 
     getHelp () {
@@ -55,30 +51,38 @@ class BreakModule extends CommandModule {
 
     _setTimer (msg, minutes) {
         const seconds = minutes * 60
-        const channelHasTimer = this.timers.hasOwnProperty(msg.channel.id)
-        const expireCallback = this._timerExpired.bind(this, msg)
+        const end = moment().add(seconds, 'seconds')
+        const timer = this.timers[msg.channel.id]
 
-        if (channelHasTimer) {
-            this.timers[msg.channel.id].reset(seconds, expireCallback)
+        if (timer) {
+            timer.reset(end)
         } else {
-            this.timers[msg.channel.id] = new BreakTimer(seconds, expireCallback)
+            this.timers[msg.channel.id] = this._newTimer(end, msg.author, msg.channel)
         }
 
-        return Promise.resolve('@here ' + minutes + ' minute' + (minutes > 1 ? 's' : '') + ' break timer set.')
+        return Promise.resolve({content: '@here ' + minutes + ' minute' + (minutes > 1 ? 's' : '') + ' break timer set.'})
     }
 
     _clearTimer (msg) {
         if (this.timers.hasOwnProperty(msg.channel.id)) {
-            delete this.timers[msg.channel.id]
+            this._removeTimer(msg.channel.id)
 
-            return Promise.resolve('@here break timer reset.')
+            return Promise.resolve('break cancelled.')
         }
 
         return Promise.reject('no timer was set.')
     }
 
-    _timerExpired (msg) {
-        this.bot.sendReply(msg, '@here break is over, get back to whatever you were doing!')
+    _timerExpired (timer) {
+        this._removeTimer(timer.channel.id)
+
+        this.bot.sendChannelMessage(timer.channel.id, '@here break is over, get back to whatever you were doing!')
+    }
+
+    _removeTimer (channelId) {
+        this.timers[channelId].stop()
+        this.bot.storage.removeItem(`breaktimer_${channelId}`).catch(() => {})
+        delete this.timers[channelId]
     }
 
     Message (message) {

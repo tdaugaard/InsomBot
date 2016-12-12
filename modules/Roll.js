@@ -2,6 +2,7 @@
 
 const CommandModule = require('../CommandModule')
 const Common = require('../common')
+const logger = require('../logger')
 const Raffle = require('./util/Raffle')
 const MessageEmbed = require('./util/MessageEmbed')
 const numeral = require('numeral')
@@ -26,7 +27,7 @@ class RollModule extends CommandModule {
         })
 
         this.addTrigger('!raffle', {
-            'short': 'Start a raffle about something and announce a winner later.',
+            'short': 'Start a raffle about something and announce a winner later or view any ongoing raffle.',
             'params': [
                 'prize'
             ]
@@ -37,7 +38,6 @@ class RollModule extends CommandModule {
         })
 
         this._loadRaffles()
-        this._checkExpiredRaffles()
     }
 
     getHelp() {
@@ -47,18 +47,25 @@ class RollModule extends CommandModule {
                '\nOnly the raffle owner may end the raffle manually.'
     }
 
-    _loadRaffles () {
-
+    destructor () {
+        for (const k of Object.keys(this.raffles)) {
+            logger.info(`RollModule: Saving raffle for channel #${this.raffles[k].channel.name}`)
+            this.bot.storage.setItemSync(`raffle_${k}`, this.raffles[k].serialize())
+        }
     }
 
-    _checkExpiredRaffles () {
-        for (const k of Object.keys(this.raffles)) {
-            if (this.raffles[k].expired()) {
-                delete this.raffles[k]
-            }
-        }
+    _loadRaffles () {
+        this.bot.storage.valuesWithKeyMatch(/^raffle_/).forEach(data => {
+            logger.info(`RollModule: Loading saved raffle for channel #${data.channel.name}, expires on ${moment(data.end)}`)
+            let raffle = this._newRaffle(data.about, data.author, data.channel)
+            raffle.restore(data)
+            this.raffles[data.channel.id] = raffle
+        })
+    }
 
-        setTimeout(this._checkExpiredRaffles.bind(this), 1000)
+    _newRaffle (about, author, channel) {
+        return new Raffle(about, author, channel)
+            .on('expire', this._raffleExpired.bind(this))
     }
 
     _startRaffle (msg) {
@@ -68,9 +75,7 @@ class RollModule extends CommandModule {
             return Promise.reject('we need something to raffle about!')
         }
 
-        const raffle = new Raffle(this._raffleExpired.bind(this), params.join(' '))
-        raffle.setAuthor(msg.author)
-        raffle.setChannel(msg.channel)
+        const raffle = this._newRaffle(params.join(' '), msg.author, msg.channel)
 
         this.raffles[msg.channel.id] = raffle
 
@@ -78,12 +83,13 @@ class RollModule extends CommandModule {
                 msg.channel.id,
                 `@everyone <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
                 ' Type `!roll` to participate in the draw.' +
-                ` The raffle will automagically end in 24 hours unless ${raffle.author.username} ends it earlier.` +
-                ' Any ties will be solved by re-rolling, naturally =)'
+                ` The raffle will automagically end in ${Common.relativeTime(moment(raffle.end).diff())} unless ${raffle.author.username} ends it earlier.` +
+                ' Any ties will be solved by re-rolling, naturally =)' +
+                '\n\nPlease note that raffles about pets, mounts, or similar things are usually only awarded to people who does not already have the item already.'
             )
             .then(msg => {
                 if (this.config.pinAnnounceMsg) {
-                    raffle.messageId = msg.id
+                    raffle.announceMessageId = msg.id
                     msg.pin()
                 }
             })
@@ -103,8 +109,16 @@ class RollModule extends CommandModule {
         return rollers
     }
 
+    _removeRaffle (channelId) {
+        this.raffles[channelId].stop()
+        this.bot.storage.removeItem(`raffle_${channelId}`).catch(() => {})
+        delete this.raffles[channelId]
+    }
+
     _raffleExpired (raffle) {
         const rollers = this._getSortedRaffleRollers(raffle)
+
+        this._removeRaffle(raffle.channel.id)
 
         if (!rollers.length) {
             return this.bot.sendChannelMessage(raffle.channel.id, `The raffle for **${raffle.about}** by ${raffle.author.username} is over! Sadly, there were no participants. Such is life.`)
@@ -117,7 +131,7 @@ class RollModule extends CommandModule {
 
             channel.fetchPinnedMessages()
                 .then(msgs => {
-                    const msg = msgs.get(raffle.messageId)
+                    const msg = msgs.get(raffle.announceMessageId)
                     if (msg) {
                         msg.unpin()
                     }
@@ -125,7 +139,7 @@ class RollModule extends CommandModule {
         }
 
         return this.bot.sendChannelMessage(raffle.channel.id,
-            `:first_place: The raffle for **${raffle.about}** is over! ${winner.user} is the` +
+            `:first_place: The raffle for **${raffle.about}** is over! <@${winner.user.id}> is the` +
             ` lucky winner with a roll of **${winner.dice}**! Collect your prize from <@${raffle.author.id}> =D`
         )
     }
@@ -142,8 +156,11 @@ class RollModule extends CommandModule {
             return Promise.reject(`the current raffle was started by ${raffle.author.username} - please wait until it's over to create yours.`)
         }
 
-        //raffle.reset(120)
-        raffle.reset(0)
+        if (raffle.ending) {
+            return Promise.reject('the raffle has already been called to an end - the winner will be announced shortly!')
+        }
+
+        raffle.endRaffle()
 
         return Promise.resolve({content: `@everyone the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
     }
@@ -172,8 +189,9 @@ class RollModule extends CommandModule {
 
         const embed = new MessageEmbed(`Raffle by ${raffle.author.username}`)
 
+console.log(raffle)
         embed.addField('Prize', `**${raffle.about}**`, true)
-        embed.addField('Expires', 'In ' + Common.relativeTime(moment(raffle.expires).diff(moment())), true)
+        embed.addField('Expires', 'In ' + Common.relativeTime(moment(raffle.end).diff()), true)
 
         rollers
             .slice(0, 5)
@@ -184,7 +202,12 @@ class RollModule extends CommandModule {
                     numeral(v.dice).format('0,0')
                 ])
             })
-        embed.addField('High Rollers', '```' + table.toString() + '```')
+
+        if (rollers) {
+            embed.addField('High Rollers', '```' + table.toString() + '```')
+        } else {
+            embed.addField('High Rollers', 'No rollers yet :(')
+        }
 
         return Promise.resolve({embed: {embed: embed}})
     }
@@ -271,7 +294,7 @@ class RollModule extends CommandModule {
                 }
 
                 return Promise.reject({content:
-                    `The current raffle by ${raffle.author.username} for **${raffle.about}** will expire on ${raffle.expires}.` +
+                    `The current raffle by ${raffle.author.username} for **${raffle.about}** will expire on ${raffle.end}.` +
                     (roll ? ` You rolled _${roll.dice}_.` : ' You have not yet participated!')
                 })
             }

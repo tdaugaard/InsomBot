@@ -6,20 +6,32 @@ const path = require('path')
 const fs = require('fs')
 const util = require('util')
 const EventEmitter = require('events').EventEmitter
+const storage  = require('node-persist')
 
 class DiscordBot extends EventEmitter {
     constructor (env, discord) {
         super()
 
         this.discord = discord
+        this.storage  = storage
         this.modules = {}
         this.triggers = {}
         this.config = env
 
+        if (env.hasOwnProperty('persistsDir')) {
+            try {
+                fs.mkdirSync(env.persistsDir, 0o644)
+            } catch (e) {}
+
+            storage.initSync({
+                dir: env.persistsDir
+            })
+        }
+
         this._loadModules()
     }
 
-    destructor () {
+    destroy () {
         for (const module of Common.objectIterator(this.modules)) {
             if (typeof module.destructor === 'function') {
                 module.destructor()

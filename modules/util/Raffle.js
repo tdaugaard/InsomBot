@@ -4,24 +4,28 @@ const moment = require('moment')
 const BreakTimer = require('./BreakTimer')
 
 class Raffle extends BreakTimer {
-    constructor (cb, about) {
-        super(86400, cb)
+    constructor (about, author, channel) {
+        super(moment().add(1, 'day'), author, channel)
 
-        this.author = {}
-        this.channel = {}
+        this.ending = false
+        this.announceMessageId = null
         this.rolls = {}
         this.about = about
     }
 
-    setAuthor (author) {
-        this.author = author
+    restore (data) {
+        Object.assign(this, data)
+
+        return this
     }
 
-    setChannel (channel) {
-        this.channel = {
-            id: channel.id,
-            name: channel.name
+    endRaffle () {
+        if (this.ending) {
+            return
         }
+
+        this.ending = true
+        this.reset(moment().add(2, 'minutes'))
     }
 
     addRoll (user, dice) {
@@ -34,6 +38,8 @@ class Raffle extends BreakTimer {
             time: new Date(),
             dice: dice
         }
+
+        return this
     }
 
     getRoll (user) {
@@ -46,6 +52,15 @@ class Raffle extends BreakTimer {
         }
 
         return this.rolls
+    }
+
+    serialize () {
+         return Object.assign(super.serialize(), {
+             announceMessageId: this.announceMessageId,
+             ending: this.ending,
+             rolls: this.rolls,
+             about: this.about
+         })
     }
 }
 
