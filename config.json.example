@@ -18,10 +18,13 @@
             "blacklisted": true
         },
         "Roll": {
-            "enabled": false
+            "enabled": true,
+            "roles": [],
+            "pinAnnounceMsg": true,
+            "raffleNotify": "@here"
         },
         "Attendance": {
-            "enabled": true,
+            "enabled": false
             "roles": [
                 "Officer"
             ],
@@ -35,7 +38,7 @@
             ]
         },
         "Doge": {
-            "suchBaseMuchUrl": "http:/dogr.io/",
+            "suchBaseMuchUrl": "http://dogr.io/",
             "manyMuchWow": [
                 "such",
                 "many",
