@@ -8,7 +8,7 @@ const moment = require('moment')
 const request = require('request')
 const deferred = require('deferred')
 const cachedRequest = require('cached-request')(request)
-const MessageEmbed = require('./util/MessageEmbed')
+const MessageEmbed = require('./lib/MessageEmbed')
 
 class TokenModule extends CommandModule {
     constructor (parent, config) {

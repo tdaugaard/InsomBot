@@ -12,8 +12,8 @@ const Table = require('cli-table2')
 const async = require('async')
 const moment = require('moment')
 const difference = require('array-difference')
-const PlayerAttendance = require('./util/PlayerAttendance')
-const RaidAttendance = require('./util/RaidAttendance')
+const PlayerAttendance = require('./lib/PlayerAttendance')
+const RaidAttendance = require('./lib/RaidAttendance')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {

@@ -5,7 +5,7 @@ const colors = require('colors')
 const path = require('path')
 const fs = require('fs')
 const util = require('util')
-const MessageEmbed = require('./modules/util/MessageEmbed')
+const MessageEmbed = require('./modules/lib/MessageEmbed')
 const EventEmitter = require('events').EventEmitter
 const storage = require('node-persist')
 

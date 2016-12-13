@@ -11,7 +11,7 @@ class ComicsModule extends CommandModule {
     }
 
     _loadComics () {
-        const files = glob.sync('./modules/util/comics/*.js', {absolute: true})
+        const files = glob.sync('./modules/lib/comics/*.js', {absolute: true})
 
         if (!files.length) {
             return

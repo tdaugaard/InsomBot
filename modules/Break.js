@@ -4,7 +4,7 @@ const moment = require('moment')
 const logger = require('../logger')
 const Common = require('../common')
 const CommandModule = require('../CommandModule')
-const BreakTimer = require('./util/BreakTimer')
+const BreakTimer = require('./lib/BreakTimer')
 
 class BreakModule extends CommandModule {
     constructor (parent, config) {
