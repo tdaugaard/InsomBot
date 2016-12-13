@@ -84,7 +84,7 @@ class DiscordBot extends EventEmitter {
         logger.info('%s Loaded module %s providing %s.',
             module.enabled ? rEnabled : rDisabled,
             colors.blue.bold(name),
-            triggers.join(', ').yellow.bold
+            triggers.length ? triggers.join(', ').yellow.bold : 'nothing'
         )
 
         return module

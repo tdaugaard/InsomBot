@@ -3,7 +3,6 @@
 const CommandModule = require('../CommandModule')
 const Common = require('../common')
 const logger = require('../logger')
-const colors = require('colors')
 const Raffle = require('./util/Raffle')
 const MessageEmbed = require('./util/MessageEmbed')
 const numeral = require('numeral')
@@ -147,7 +146,6 @@ class RollModule extends CommandModule {
     }
 
     _endRaffle (msg) {
-        const params = this._getParams(msg)
         const raffle = this._getRaffle(msg.channel)
 
         if (!raffle) {

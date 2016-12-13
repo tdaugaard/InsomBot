@@ -1,7 +1,5 @@
 'use strict'
 
-const numeral = require('numeral')
-const colors = require('colors')
 const moment = require('moment')
 const logger = require('../logger')
 const Common = require('../common')

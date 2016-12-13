@@ -57,12 +57,12 @@ class Raffle extends BreakTimer {
     }
 
     serialize () {
-         return Object.assign(super.serialize(), {
-             announceMessageId: this.announceMessageId,
-             ending: this.ending,
-             rolls: this.rolls,
-             about: this.about
-         })
+        return Object.assign(super.serialize(), {
+            announceMessageId: this.announceMessageId,
+            ending: this.ending,
+            rolls: this.rolls,
+            about: this.about
+        })
     }
 }
 

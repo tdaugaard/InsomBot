@@ -14,7 +14,6 @@ const moment = require('moment')
 const difference = require('array-difference')
 const PlayerAttendance = require('./util/PlayerAttendance')
 const RaidAttendance = require('./util/RaidAttendance')
-const MessageEmbed = require('./util/MessageEmbed')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -292,27 +291,6 @@ class AttendanceModule extends CommandModule {
     }
 
     _assembleAttendanceData (attendance) {
-        const table = this._getAttendanceTable(attendance)
-        const attendedOnAlts = this._getAlsoAttendedOnAlts(attendance.characterNames)
-        const plusThisManyMore = Object.keys(attendance.players).length - table.length
-        const embed = new MessageEmbed(`Attendance situation for the past ${attendance.raids.length} raids (${attendance.fights} fights)`)
-
-        embed.color = 3447003
-        embed.addField('Attendance Table', '```' + table.toString() + '```')
-
-        if (plusThisManyMore > 0) {
-            // embed.addField()
-            // out += ' … and ' + plusThisManyMore + ' more not shown.'
-        }
-
-        if (attendedOnAlts.length) {
-            embed.setFooter('These players also attended on alts', '_' + attendedOnAlts.join('_, _') + '_')
-        }
-
-        return embed
-    }
-
-    _assembleAttendanceDataEx (attendance) {
         const table = new Table({
             head: ['Character', 'Raids', 'Fights'],
             chars: { 'top': '', 'top-mid': '', 'top-left': '', 'top-right': '', 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '', 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '┼', 'right': '', 'right-mid': '', 'middle': '|' },
@@ -438,25 +416,7 @@ class AttendanceModule extends CommandModule {
             return this
                 ._getReports(params)
                 .then(this._filterInactiveMembers.bind(this))
-                .then(this._assembleAttendanceDataEx.bind(this))
-        }
-
-        if (trigger === 'attend') {
-            const defer = deferred()
-
-            this
-                ._getReports(params)
-                .then(this._filterInactiveMembers.bind(this))
                 .then(this._assembleAttendanceData.bind(this))
-                .then(embed => {
-                    message.channel.sendMessage('', {embed: embed})
-                        .then(() => {
-                            defer.resolve(false)
-                        })
-                        .catch(defer.reject)
-                })
-
-            return defer.promise
         }
     }
 }
