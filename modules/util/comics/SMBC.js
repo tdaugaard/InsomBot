@@ -9,22 +9,19 @@ const request = require('request')
 const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
 
-class XKCDComic {
+class SMBCComic {
     constructor (module) {
         cachedRequest.setCacheDirectory(module.bot.config.cacheDirectory)
 
-        module.addTrigger('!xkcd', {
-            'short': 'Latest XKCD',
-            'provider': 'XKCD',
-            'params': [
-                'comic_id (optional)'
-            ]
+        module.addTrigger('!smbc', {
+            'short': 'Latest Saturday Morning Breakfast Cereal comic',
+            'provider': 'SMBC'
         })
     }
 
     getLatestComic () {
         const defer = deferred()
-        const endpoint = 'http://xkcd.com/rss.xml'
+        const endpoint = 'http://www.smbc-comics.com/rss.php'
         const feedparser = new FeedParser()
         let mostRecentComic
 
@@ -41,7 +38,6 @@ class XKCDComic {
                 const age = moment().diff(mostRecentComic.pubDate, 'days')
                 const $ = cheerio.load(mostRecentComic.summary)
                 const imageUrl = $('img').attr('src')
-                const imageAltText = $('img').attr('title')
 
                 let publishDateString
 
@@ -52,9 +48,7 @@ class XKCDComic {
                 }
 
                 defer.resolve({
-                    content:
-                        `Latest: **${mostRecentComic.title}** from _${publishDateString}_` +
-                        `\nAlt text: _${imageAltText}_`,
+                    content: `Latest: **${mostRecentComic.title}** from _${publishDateString}_`,
                     file: imageUrl
                 })
             })
@@ -77,5 +71,5 @@ class XKCDComic {
 }
 
 module.exports = (parent) => {
-    return new XKCDComic(parent)
+    return new SMBCComic(parent)
 }

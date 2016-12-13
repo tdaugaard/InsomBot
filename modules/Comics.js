@@ -1,14 +1,32 @@
 const CommandModule = require('../CommandModule')
-const DarkLegacyComics = require('./util/comics/DarkLegacyComics')
-const XKCD = require('./util/comics/XKCD')
+const glob = require('glob')
+const path = require('path')
 
 class ComicsModule extends CommandModule {
     constructor (parent, config) {
         super(parent, config)
 
-        this.comics = {
-            'DarkLegacyComics': new DarkLegacyComics(this),
-            'XKCD': new XKCD(this)
+        this.comics = {}
+        this._loadComics()
+    }
+
+    _loadComics () {
+        const files = glob.sync('./modules/util/comics/*.js', {absolute: true})
+
+        if (!files.length) {
+            return
+        }
+
+        for (const file of files) {
+            const provider = path.basename(file, '.js')
+
+            this.comics[provider] = require(file)(this)
+        }
+    }
+
+    destructor () {
+        for (const k of Object.keys(this.comics)) {
+            delete this.comics[k]
         }
     }
 
@@ -24,6 +42,10 @@ class ComicsModule extends CommandModule {
         const comicsModule = this.comics[triggerInfo.provider]
 
         if (params.length) {
+            if (typeof comicsModule.getSpecificComic !== 'function') {
+                return Promise.reject(`sorry, ${triggerInfo.provider} doesn't support this. Yet.`)
+            }
+
             return comicsModule.getSpecificComic(parseInt(params[0]))
         }
 

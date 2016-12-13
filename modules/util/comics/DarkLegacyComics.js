@@ -10,7 +10,7 @@ const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
 
 class DarkLegacyComicsComic {
-    constructor(module) {
+    constructor (module) {
         cachedRequest.setCacheDirectory(module.bot.config.cacheDirectory)
 
         module.addTrigger('!dlc', {
@@ -29,9 +29,7 @@ class DarkLegacyComicsComic {
         let mostRecentComic
 
         feedparser
-            .on('error', (err) => {
-                defer.reject(err)
-            })
+            .on('error', defer.reject)
             .on('readable', function () {
                 const item = this.read()
 
@@ -104,4 +102,6 @@ class DarkLegacyComicsComic {
     }
 }
 
-module.exports = DarkLegacyComicsComic
+module.exports = (parent) => {
+    return new DarkLegacyComicsComic(parent)
+}
