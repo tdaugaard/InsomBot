@@ -85,6 +85,21 @@ class DiscordBot extends EventEmitter {
             colors.blue.bold(name),
             triggers.join(', ').yellow.bold
         )
+
+        return module
+    }
+
+    _unloadModule (moduleName) {
+        const rDisabled = '❌'.red.bold
+        const module = this.getModuleByName(moduleName)
+        const modulePath = this._findModulePathByName(moduleName)
+
+        this._unloadModuleTriggers(module)
+
+        Common.deleteNodeModule(modulePath)
+        delete this.modules[moduleName]
+
+        logger.info('%s Unloaded module %s.', rDisabled, colors.blue.bold(moduleName))
     }
 
     disableModule (moduleName) {
@@ -99,6 +114,7 @@ class DiscordBot extends EventEmitter {
         }
 
         module.enabled = false
+        module.destructor()
         this._unloadModuleTriggers(module)
 
         this.updateConfig()
@@ -123,6 +139,30 @@ class DiscordBot extends EventEmitter {
         this.updateConfig()
 
         return module
+    }
+
+    reloadModule (moduleName) {
+        let module = this.getModuleByName(moduleName)
+        if (!module) {
+            return Promise.reject('No such module: ' + moduleName)
+        }
+
+        const modulePath = this._findModulePathByName(moduleName)
+
+        this._unloadModule(moduleName)
+        module = this._loadModule(modulePath)
+
+        return Promise.resolve(module)
+    }
+
+    _findModulePathByName (moduleName) {
+        const modulePath = './modules/' + moduleName + '.js'
+
+        if (!fs.existsSync(modulePath)) {
+            return false
+        }
+
+        return modulePath
     }
 
     hasModule (moduleName) {

@@ -29,7 +29,7 @@ class ManageModule extends CommandModule {
                 'short': 'Display module status'
             })
             .addTrigger('!reload', {
-                'short': 'Reloads a module (disable, then enable)',
+                'short': 'Completely unloads and then reloads a module.',
                 'params': [
                     'module name'
                 ]
@@ -103,8 +103,9 @@ class ManageModule extends CommandModule {
 
     _reloadModule (params) {
         return this._disableModule(params)
+            .then(this.bot.reloadModule.bind(this.bot, params[0]))
             .then(this._enableModule.bind(this, params))
-            .then(() => {
+            .then(module => {
                 return params[0] + ' has been reloaded.'
             })
     }
