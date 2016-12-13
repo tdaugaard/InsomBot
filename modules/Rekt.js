@@ -124,7 +124,7 @@ class RektModule extends CommandModule {
             .map(v => '☒ ' + v)
             .join('\n')
 
-        return str
+        return {content: str}
     }
 
     Message (message) {

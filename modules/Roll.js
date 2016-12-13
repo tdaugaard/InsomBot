@@ -40,9 +40,9 @@ class RollModule extends CommandModule {
         this._loadRaffles()
     }
 
-    getHelp() {
+    getHelp () {
         return 'When you start a raffle everyone will be notified and the raffle will last for 24 hours after which the winner will be announced.' +
-               '\nWhen a channel has a raffle going on, any `!roll`s will be restricted to 0 - 100 and only one roll per person.'
+               '\nWhen a channel has a raffle going on, any `!roll`s will be restricted to 0 - 100 and only one roll per person.' +
                '\n\nIf you want to prematurely announce a winner, simply run `!winner` and the raffle will come to an end in two minutes.' +
                '\nOnly the raffle owner may end the raffle manually.'
     }
@@ -79,7 +79,7 @@ class RollModule extends CommandModule {
 
         this.raffles[msg.channel.id] = raffle
 
-        return this.bot.sendChannelMessage(
+        this.bot.sendChannelMessage(
                 msg.channel.id,
                 this.config.raffleNotify +
                 ` <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
@@ -95,7 +95,7 @@ class RollModule extends CommandModule {
                 }
             })
 
-        return Promise.resolve(raffle)
+        return Promise.resolve()
     }
 
     _getSortedRaffleRollers (raffle) {

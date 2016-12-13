@@ -324,7 +324,7 @@ class AttendanceModule extends CommandModule {
             ])
         })
 
-        out += "here's the attendance situation for the past " + attendance.raids.length + ' raids (' + attendance.fights + ' fights)\n'
+        out += `Here's the attendance situation for the past **${attendance.raids.length}** raids (_${attendance.fights} fights_)\n`
         out += '```\n'
         out += table.toString() + '\n'
 
@@ -337,7 +337,7 @@ class AttendanceModule extends CommandModule {
             out += '\n_' + attendedOnAlts.join('_, _') + '_ also attended on alts, which _has_ been taken into account.'
         }
 
-        return out
+        return {content: out}
     }
 
     _filterInactiveMembers (attendance) {
