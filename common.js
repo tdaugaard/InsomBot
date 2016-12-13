@@ -39,9 +39,9 @@ class Common {
     static relativeTime (ms) {
         const divisors = [
             {d: 86400, n: 'd'},
-            {d: 3600,  n: 'h'},
-            {d: 60,    n: 'm'},
-            {d: 1,     n: 's'}
+            {d: 3600, n: 'h'},
+            {d: 60, n: 'm'},
+            {d: 1, n: 's'}
         ]
         let values = []
 
@@ -57,6 +57,19 @@ class Common {
         }
 
         return values.slice(0, 2).join(' ')
+    }
+
+    static deleteNodeModule (moduleName) {
+        const solvedName = require.resolve(moduleName)
+        const nodeModule = require.cache[solvedName]
+
+        if (nodeModule) {
+            for (var i = 0; i < nodeModule.children.length; i++) {
+                const child = nodeModule.children[i]
+                Common.deleteNodeModule(child.filename)
+            }
+            delete require.cache[solvedName]
+        }
     }
 }
 

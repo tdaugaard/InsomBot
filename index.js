@@ -14,7 +14,6 @@ let attemptedExit = false
 process
     .on('SIGTERM', terminateProcess)
     .on('SIGINT', exitHandler)
-    //.on('exit', exitHandler)
     .on('uncaughtException', r => logger.error(r))
 
 function terminateProcess () {
@@ -70,10 +69,6 @@ discordjs
             return
         }
 
-        // msg.channel.startTyping()
-
-        //discordjs.startTyping(msg.channel)
-
         bot.processMessage(msg)
             .then(bot.sendReply.bind(bot, msg))
             //.then(discordjs.stopTyping(msg.channel))
@@ -85,7 +80,6 @@ discordjs
                     bot.sendReply(msg, err)
                 }
             })
-
     })
 
     .on('disconnected', function () {

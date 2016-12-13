@@ -6,14 +6,14 @@ const path = require('path')
 const fs = require('fs')
 const util = require('util')
 const EventEmitter = require('events').EventEmitter
-const storage  = require('node-persist')
+const storage = require('node-persist')
 
 class DiscordBot extends EventEmitter {
     constructor (env, discord) {
         super()
 
         this.discord = discord
-        this.storage  = storage
+        this.storage = storage
         this.modules = {}
         this.triggers = {}
         this.config = env

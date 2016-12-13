@@ -10,7 +10,7 @@ const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
 
 class XKCDComic {
-    constructor(module) {
+    constructor (module) {
         cachedRequest.setCacheDirectory(module.bot.config.cacheDirectory)
 
         module.addTrigger('!xkcd', {
@@ -29,9 +29,7 @@ class XKCDComic {
         let mostRecentComic
 
         feedparser
-            .on('error', (err) => {
-                defer.reject(err)
-            })
+            .on('error', defer.reject)
             .on('readable', function () {
                 const item = this.read()
 
@@ -44,7 +42,6 @@ class XKCDComic {
                 const $ = cheerio.load(mostRecentComic.summary)
                 const imageUrl = $('img').attr('src')
                 const imageAltText = $('img').attr('title')
-                const title = mostRecentComic.meta.title
 
                 let publishDateString
 
@@ -55,10 +52,9 @@ class XKCDComic {
                 }
 
                 defer.resolve({
-                    content: 
+                    content:
                         `Latest: **${mostRecentComic.title}** from _${publishDateString}_` +
-                        `\nAlt text: _${imageAltText}_`
-                    ,
+                        `\nAlt text: _${imageAltText}_`,
                     file: imageUrl
                 })
             })

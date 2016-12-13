@@ -259,7 +259,7 @@ class RollModule extends CommandModule {
             roll = raffle.getRoll(message.author)
         }
 
-        if (trigger === "roll") {
+        if (trigger === 'roll') {
             if (raffle && roll) {
                 return Promise.reject(`you already rolled a _${roll.dice}_ in this raffle.`)
             }
@@ -284,11 +284,11 @@ class RollModule extends CommandModule {
                 })
         }
 
-        if (trigger == "winner") {
+        if (trigger === 'winner') {
             return this._endRaffle(message)
         }
 
-        if (trigger == "raffle") {
+        if (trigger === 'raffle') {
             if (raffle) {
                 if (raffle.author.id === message.author.id) {
                     return this._displayRaffleRolls(message)

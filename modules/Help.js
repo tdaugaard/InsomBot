@@ -1,7 +1,7 @@
 'use strict'
 
 const CommandModule = require('../CommandModule')
-const escapeMarkdown = require('discord.js').escapeMarkdown;
+const escapeMarkdown = require('discord.js').escapeMarkdown
 
 class HelpModule extends CommandModule {
     constructor (parent, config) {
@@ -39,7 +39,7 @@ class HelpModule extends CommandModule {
             }
 
             str += moduleHeader
-            str += ': _' + Object.keys(module.triggers).join("_, _") + '_'
+            str += ': _' + Object.keys(module.triggers).join('_, _') + '_'
 
             result.push(str)
         })

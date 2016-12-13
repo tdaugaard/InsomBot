@@ -2,7 +2,7 @@
 
 const env = require('./config.json')
 if (!process.env.hasOwnProperty('PM2_USAGE')) {
-     Object.assign(env, {logger: {level: 'debug'}})
+    Object.assign(env, {logger: {level: 'debug'}})
 }
 
 const winston = require('winston')
