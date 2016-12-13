@@ -40,6 +40,13 @@ function exitHandler () {
     process.exit(0)
 }
 
+function stopTypingInChannel (msg) {
+    if (msg.channel.typing) {
+        logger.debug('Stop typing in ' + bot.getChannelString(msg.channel))
+        msg.channel.stopTyping()
+    }
+}
+
 discordjs
     .on('ready', function () {
         logger.info('Connected! Serving in %d channels as %s#%d',
@@ -48,7 +55,16 @@ discordjs
             this.user.discriminator
         )
 
-        bot = new DiscordBot(env, this)
+        if (!bot) {
+            bot = new DiscordBot(env, this)
+                .on('begin', msg => {
+                    if (!msg.channel.typing) {
+                        logger.debug('Start typing in ' + bot.getChannelString(msg.channel))
+                        msg.channel.startTyping()
+                    }
+                })
+                .on('end', stopTypingInChannel)
+        }
     })
 
     .on('message', function (msg) {
@@ -70,15 +86,8 @@ discordjs
         }
 
         bot.processMessage(msg)
-            .then(bot.sendReply.bind(bot, msg))
-            //.then(discordjs.stopTyping(msg.channel))
             .catch(err => {
-                //discordjs.stopTyping(msg.channel)
-                // msg.channel.stopTyping()
-
-                if (err) {
-                    bot.sendReply(msg, err)
-                }
+                logger.error(err)
             })
     })
 

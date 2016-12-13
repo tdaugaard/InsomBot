@@ -5,6 +5,7 @@ const colors = require('colors')
 const path = require('path')
 const fs = require('fs')
 const util = require('util')
+const MessageEmbed = require('./modules/util/MessageEmbed')
 const EventEmitter = require('events').EventEmitter
 const storage = require('node-persist')
 
@@ -280,11 +281,11 @@ class DiscordBot extends EventEmitter {
                     colors.white.bold(reply)
                 )
             }
-
         } else if (util.isObject(reply)) {
             if (reply.hasOwnProperty('file')) {
                 promise = message.channel.sendFile(reply.file, null, reply.content || '')
             } else {
+                reply = reply instanceof MessageEmbed ? {embed: reply.embed} : reply
                 promise = message.channel.sendMessage(reply.content || '', reply.embed || {})
             }
 
@@ -293,6 +294,12 @@ class DiscordBot extends EventEmitter {
                 this.getAuthorString(message.author)
             )
         }
+
+        promise.catch(err => {
+            this.emit('end', message)
+
+            logger.error(err)
+        })
 
         return promise
     }
@@ -343,7 +350,25 @@ class DiscordBot extends EventEmitter {
             return Promise.reject('Access denied.')
         }
 
+        this.emit('begin', message)
+
+        let timeoutProcessingRequest = setTimeout(() => {
+            message.reply('something\'s not quite right! Timeout while processing your request. Something went awry.')
+            this.emit('end', message)
+        }, 15 * 1000)
+
         return module.Message(message)
+            .then(reply => {
+                clearTimeout(timeoutProcessingRequest)
+                this.sendReply(message, reply)
+                this.emit('end', message)
+            })
+            .catch(err => {
+                clearTimeout(timeoutProcessingRequest)
+                if (err) {
+                    this.sendReply(message, err)
+                }
+            })
     }
 }
 
