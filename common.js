@@ -38,14 +38,13 @@ class Common {
 
     static relativeTime (ms) {
         const divisors = [
-            {d: 86400, n: 'd'},
-            {d: 3600, n: 'h'},
-            {d: 60, n: 'm'},
-            {d: 1, n: 's'}
+            {d: 86400000, n: 'd'},
+            {d: 3600000, n: 'h'},
+            {d: 60000, n: 'm'},
+            {d: 1000, n: 's'},
+            {d: 1, n: 'ms'}
         ]
         let values = []
-
-        ms /= 1000
 
         for (const divisor of divisors) {
             const value = Math.floor(ms / divisor.d)
