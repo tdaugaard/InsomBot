@@ -63,7 +63,9 @@ discordjs
                         msg.channel.startTyping()
                     }
                 })
-                .on('end', stopTypingInChannel)
+                .on('end', msg => {
+                    stopTypingInChannel(msg)
+                })
         }
     })
 
@@ -80,6 +82,11 @@ discordjs
             return
         }
 
+        // Bot accounts do not have a 'member' property so let's ignore them.
+        if (!msg.hasOwnProperty('member') || !msg.member) {
+            return
+        }
+
         // Users with no roles (except @everyone) are not allowed to use the bot.
         if (env.hasOwnProperty('allowed') && env.allowed === 'members' && msg.member.roles.length === 0) {
             return
@@ -87,7 +94,9 @@ discordjs
 
         bot.processMessage(msg)
             .catch(err => {
-                logger.error(err)
+                if (err) {
+                    logger.error(err)
+                }
             })
     })
 
