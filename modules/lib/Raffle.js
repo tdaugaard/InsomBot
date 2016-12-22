@@ -21,13 +21,17 @@ class Raffle extends BreakTimer {
         return this
     }
 
-    endRaffle () {
+    endRaffle (gracePeriod) {
         if (this.ending) {
             return
         }
 
         this.ending = true
-        this.reset(moment().add(2, 'minutes'))
+        if (gracePeriod) {
+            this.reset(moment().add(gracePeriod, 'minutes'))
+        } else {[
+            this.reset(0)
+        ]}
     }
 
     addRoll (user, dice) {

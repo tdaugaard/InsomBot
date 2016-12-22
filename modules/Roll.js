@@ -14,7 +14,10 @@ class RollModule extends CommandModule {
     constructor (parent, config) {
         super(parent, config)
 
-        this.pinAnnounceMsg = this.pinAnnounceMsg || false
+        this.config = Object.assign({
+            raffleEndGracePeriod: 2,
+            pinAnnounceMsg: false
+        }, this.config)
 
         this.raffles = {}
 
@@ -160,9 +163,15 @@ class RollModule extends CommandModule {
             return Promise.reject('the raffle has already been called to an end - the winner will be announced shortly!')
         }
 
-        raffle.endRaffle()
+        raffle.endRaffle(this.config.raffleEndGracePeriod)
 
-        return Promise.resolve({content: this.config.raffleNotify + ` the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
+        if (this.config.raffleEndGracePeriod) {
+            return Promise.resolve({content: this.config.raffleNotify + ` the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
+        }
+
+        // If there's no grace period for ending the raffle, we don't need to reply as the expiration of the
+        // raffle timer will immediately reply.
+        return Promise.resolve('')
     }
 
     _getRaffle (channel) {

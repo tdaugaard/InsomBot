@@ -22,6 +22,7 @@
             "enabled": true,
             "roles": [],
             "pinAnnounceMsg": true,
+            "raffleEndGracePeriod": 2,
             "raffleNotify": "@here"
         },
         "Attendance": {
