@@ -83,7 +83,14 @@ discordjs
         }
 
         if (channelType === 'dm') {
-            bot.replyMessage(msg, "Sorry, I can't process commands by direct messages.")
+            if (env.discord.debugChannel) {
+                const channel = discordjs.channels.find('name', env.discord.debugChannel)
+                if (channel) {
+                    bot.sendChannelMessage(channel.id, msg.author + ` sent direct message to the bot: __${msg.content}__`)
+                }
+            }
+
+            bot.sendReply(msg, "Sorry, I can't process commands by direct messages.")
             return
         }
 
