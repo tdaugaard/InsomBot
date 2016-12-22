@@ -40,6 +40,11 @@ function exitHandler () {
     process.exit(0)
 }
 
+function loginError (err) {
+    logger.error(err.toString())
+    process.exit(-1)
+}
+
 function stopTypingInChannel (msg) {
     if (msg.channel.typing) {
         logger.debug('Stop typing in ' + bot.getChannelString(msg.channel))
@@ -105,8 +110,5 @@ discordjs
         process.exit(1)
     })
 
-if (env.discord.hasOwnProperty('token')) {
-    discordjs.login(env.discord.token)
-} else {
-    discordjs.login(env.discord.email, env.discord.password)
-}
+    .login(env.discord.token)
+    .catch(loginError)

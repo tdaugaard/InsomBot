@@ -19,7 +19,7 @@
     "cheerio": "^0.22.0",
     "cli-table2": "^0.2.0",
     "deferred": "^0.7.5",
-    "discord.js": "^10.0.1",
+    "discord.js": "github:hydrabolt/discord.js#indev",
     "dot-object": "^1.5.4",
     "feedparser": "^1.1.5",
     "humanize": "0.0.9",
