@@ -21,8 +21,11 @@ class DiscordBot extends EventEmitter {
         this.config = env
 
         if (env.hasOwnProperty('persistsDir')) {
+            const persistenceDir = path.resolve(env.persistsDir)
+            logger.debug(`Using '${persistenceDir}' for module persistence.`)
+
             try {
-                fs.mkdirSync(env.persistsDir, 0o644)
+                fs.mkdirSync(persistenceDir, 0o644)
             } catch (e) {}
 
             storage.initSync({
