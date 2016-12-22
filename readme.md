@@ -34,6 +34,14 @@ _However_, if you execute `!dismod Module1`, `!reload Module2`, then `!enmod Mod
 
 You cannot manage the load order of modules using the configuration file - it isn't normal operation to have modules define conflicting triggers.
 
+### Module Persistence
+
+Some modules may have functionality that should persist across restarts, like break timers, Raffles and what not.
+
+These modules may save this data as JSON using `bot.storage` which provides an instance of `node-persist`.
+
+The save path for this is configurable in the `persistsDir` key.
+
 ### Default Modules
 
 #### Attendance
