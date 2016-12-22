@@ -24,14 +24,14 @@ class WclModule extends CommandModule {
 
     getReports () {
         const defer = deferred()
-        const endpoint = 'https://www.warcraftlogs.com/v1/reports/guild/' + [this.bot.config.warcraftlogs.guild, this.bot.config.warcraftlogs.realm, this.bot.config.warcraftlogs.region].join('/')
+        const endpoint = 'https://www.warcraftlogs.com/v1/reports/guild/' + [this.bot.config.guild.name, this.bot.config.guild.realm, this.bot.config.guild.region.toUpperCase()].join('/')
 
         cachedRequest({
             url: endpoint,
             json: true,
             useQuerystring: true,
             ttl: 30000,
-            qs: {'api_key': this.bot.config.warcraftlogs.key}
+            qs: {'api_key': this.bot.config.guild.api.wcl}
         }, (err, res, body) => {
             Common.logRequestCompletion(logger, endpoint, err, res)
 

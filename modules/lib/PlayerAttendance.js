@@ -2,6 +2,7 @@ function PlayerAttendance (data) {
     this.name = ''
 
     this.firstAttendance = 0
+    this.firstReport = null
     this.lastAttendance = 0
 
     this.raids = {

@@ -9,12 +9,13 @@ const request = require('request')
 const cachedRequest = require('cached-request')(request)
 const sortBy = require('sort-by')
 const Table = require('cli-table2')
-const async = require('async')
 const moment = require('moment')
+const numeral = require('numeral')
 const difference = require('array-difference')
 const PlayerAttendance = require('./lib/PlayerAttendance')
 const RaidAttendance = require('./lib/RaidAttendance')
-
+const WarcraftLogs = require('./lib/WarcraftLogs')
+const util = require('util')
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
         super(parent, config)
@@ -26,7 +27,15 @@ class AttendanceModule extends CommandModule {
         this.addTrigger('!att', {
             'short': 'Collect and display information about raid attendance from Warcraft Logs',
             'params': [
+                'character (optional)',
                 'raids = ' + this.config.defaultNumRaids
+            ]
+        })
+        this.addTrigger('!kills', {
+            'short': 'Collect and display information kills and wipes from Warcraft Logs',
+            'params': [
+                'boss (optional)',
+                'raids = 100'
             ]
         })
         this.addTrigger('!alt', {
@@ -38,6 +47,12 @@ class AttendanceModule extends CommandModule {
         })
 
         this.altsToMains = this._makeMainsToAltMapping(this.config.sameNameMapping)
+        this._wcl = new WarcraftLogs(cachedRequest, {
+            guild: this.bot.config.guild.name,
+            realm: this.bot.config.guild.realm,
+            region: this.bot.config.guild.region,
+            apiKey: this.bot.config.guild.api.wcl
+        })
 
         cachedRequest.setCacheDirectory(this.bot.config.cacheDirectory)
     }
@@ -68,54 +83,84 @@ class AttendanceModule extends CommandModule {
         return mapping
     }
 
-    _getReports (params) {
-        const defer = deferred()
-        const endpoint = 'https://www.warcraftlogs.com/v1/reports/guild/' + [this.bot.config.warcraftlogs.guild, this.bot.config.warcraftlogs.realm, this.bot.config.warcraftlogs.region].join('/')
-        const numberOfRaids = Common.getIntegerBetween(params[0], {min: 1, default: this.config.defaultNumRaids})
-
-        cachedRequest({
-            url: endpoint,
-            json: true,
-            useQuerystring: true,
-            ttl: 30000,
-            time: true,
-            qs: {'api_key': this.bot.config.warcraftlogs.key}
-        }, (err, res, reports) => {
-            Common.logRequestCompletion(logger, endpoint, err, res)
-
-            if (!err && res.statusCode === 200) {
+    _getReports (numberOfRaids) {
+        return this._wcl.getListOfLogs()
+            .then(reports => {
                 if (numberOfRaids < reports.length) {
                     reports = reports.slice(-numberOfRaids)
                 }
 
-                this._collectAttendance(reports)
-                    .then(defer.resolve)
-                    .catch(defer.reject)
-            } else {
-                defer.reject(err)
-            }
-        })
-
-        return defer.promise
+                return reports
+            })
     }
 
     _collectAttendance (reports) {
         const attendance = new RaidAttendance(reports)
-        const defer = deferred()
+        let reportIndex = 0
 
-        async.eachSeries(
-            attendance.reports,
-            this._getReportFights.bind(this, attendance),
-            (err, result) => {
-                if (err) {
-                    return defer.reject(err)
-                }
+        for (const report of reports) {
+            const fightIds = report.fights
+                .filter(v => v.boss !== 0)
+                .map(v => v.id)
 
-                defer.resolve(this._aggregateAttendance(attendance))
+            attendance.fights += fightIds.length
+            attendance.raids.push({
+                id: report.id,
+                start: report.start,
+                fights: fightIds.length
+            })
+
+            report.friendlies
+                .filter(v => ['NPC', 'Boss', 'Pet'].indexOf(v.type) === -1)
+                .forEach(v => {
+                    const name = this._resolveCharacterName(v.name)
+
+                    if (attendance.characterNames.indexOf(v.name) === -1) {
+                        attendance.characterNames.push(v.name)
+                    }
+
+                    if (!attendance.players.hasOwnProperty(name)) {
+                        attendance.players[name] = new PlayerAttendance({
+                            firstAttendance: report.start,
+                            firstReport: report.id,
+                            name: name
+                        })
+                    }
+
+                    const player = attendance.players[name]
+
+                    if (player.raids.ids.indexOf(report.id) === -1) {
+                        player.raids.ids.push(report.id)
+                    }
+
+                    if (report.start < player.firstAttendance) {
+                        player.firstAttendance = report.start
+                    }
+
+                    player.lastAttendance = report.start
+                    player.fights.num += v.fights.filter(v => fightIds.indexOf(v.id) !== -1).length
+                })
+
+            ++reportIndex
+        }
+
+        return this._aggregateAttendance(attendance)
+    }
+
+    _filterSpecificCharacter (character, attendance) {
+        const players = []
+
+        character = character.toLowerCase()
+
+        for (const player of Common.objectIterator(attendance.players)) {
+            if (player.name.toLowerCase().indexOf(character) === 0) {
+                players.push(player)
             }
-        )
+        }
 
-        return defer.promise
+        attendance.players = players
+
+        return attendance
     }
 
     _aggregateAttendance (attendance) {
@@ -140,7 +185,7 @@ class AttendanceModule extends CommandModule {
 
         attendance.raids.forEach(raid => {
             if (raid.start >= player.firstAttendance) {
-                possibleReports.raids.push(raid)
+                possibleReports.raids.push(raid.id)
                 possibleReports.fights += raid.fights
             }
         })
@@ -148,72 +193,37 @@ class AttendanceModule extends CommandModule {
         return possibleReports
     }
 
-    _getReportFights (attendance, report, callback) {
-        const endpoint = 'https://www.warcraftlogs.com/v1/report/fights/' + report.id
-
-        cachedRequest({
-            url: endpoint,
-            json: true,
-            useQuerystring: true,
-            ttl: 31536000000,
-            timeout: 5000,
-            time: true,
-            qs: {'api_key': this.bot.config.warcraftlogs.key},
-            agentOptions: {
-                keepAlive: false
-            }
-        }, (err, res, details) => {
-            Common.logRequestCompletion(logger, endpoint, err, res)
-
-            if (!err && res.statusCode === 200) {
-                const fightIds = details.fights
-                    .filter(v => v.boss !== 0)
-                    .map(v => v.id)
-
-                attendance.fights += fightIds.length
-                attendance.raids.push({
-                    id: report.id,
-                    start: report.start,
-                    fights: fightIds.length
-                })
-
-                details.friendlies
-                    .filter(v => ['NPC', 'Boss', 'Pet'].indexOf(v.type) === -1)
-                    .forEach(v => {
-                        const name = this._resolveCharacterName(v.name)
-
-                        if (attendance.characterNames.indexOf(v.name) === -1) {
-                            attendance.characterNames.push(v.name)
-                        }
-
-                        if (!attendance.players.hasOwnProperty(name)) {
-                            attendance.players[name] = new PlayerAttendance({
-                                firstAttendance: report.start,
-                                name: name
-                            })
-                        }
-
-                        if (attendance.players[name].raids.ids.indexOf(report.id) === -1) {
-                            attendance.players[name].raids.ids.push(report.id)
-                        }
-
-                        if (report.start < attendance.players[name].firstAttendance) {
-                            attendance.players[name].firstAttendance = report.start
-                        }
-
-                        attendance.players[name].lastAttendance = report.start
-                        attendance.players[name].fights.num += v.fights.filter(v => fightIds.indexOf(v.id) !== -1).length
-                    })
-
-                callback()
-            } else {
-                callback({error: report.id})
-            }
-        })
-    }
-
     _resolveCharacterName (name) {
         return this.altsToMains.hasOwnProperty(name) ? this.altsToMains[name] : name
+    }
+
+    _getRaidZones () {
+        const defer = deferred()
+        const endpoint = `https://${this._guild.region}.api.battle.net/wow/zone/?locale=en_GB&apikey=${this._guild.api.blizzard}`
+
+        this._creq({
+            url: endpoint,
+            json: true,
+            ttl: 3600 * 1000,
+            time: true
+        }, (err, res, body) => {
+            Common.logRequestCompletion(logger, endpoint, err, res)
+
+            if (err || res.statusCode !== 200) {
+                return defer.reject(err)
+            }
+
+            const zones = {}
+            for (const zone of body.zones) {
+                if (!zone.isRaid) {
+                    continue
+                }
+
+                zones[zone.id] = zone.name
+            }
+
+            defer.resolve(zones)
+        })
     }
 
     _getSameNameAlsoKnownAs (attendees) {
@@ -257,39 +267,6 @@ class AttendanceModule extends CommandModule {
         return players
     }
 
-    _getAttendanceTable (attendance) {
-        const table = new Table({
-            head: ['Character', 'Raids', 'Fights'],
-            chars: { 'top': '', 'top-mid': '', 'top-left': '', 'top-right': '', 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '', 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '┼', 'right': '', 'right-mid': '', 'middle': '|' },
-            colAligns: ['left', 'right', 'right'],
-            style: {
-                head: [],
-                border: [],
-                compact: true
-            }
-        })
-        let players = []
-
-        for (const player of Common.objectIterator(attendance.players)) {
-            players.push(player)
-        }
-
-        players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
-        if (players.length > 25) {
-            players = players.slice(0, 25)
-        }
-
-        players.forEach(v => {
-            table.push([
-                v.name,
-                v.raids.num + ' of ' + pad(2, v.raids.possible) + ' (' + pad(4, Math.round(v.raids.pct) + '%') + ')',
-                v.fights.num + ' (' + pad(4, Math.round(v.fights.pct) + '%') + ')'
-            ])
-        })
-
-        return table
-    }
-
     _assembleAttendanceData (attendance) {
         const table = new Table({
             head: ['Character', 'Raids', 'Fights'],
@@ -310,8 +287,10 @@ class AttendanceModule extends CommandModule {
             players.push(player)
         }
 
+        const numberOfActivePlayers = players.length
+
         players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
-        if (players.length > 25) {
+        if (players.length > 30) {
             plusThisManyMore = players.length - 25
             players = players.slice(0, 25)
         }
@@ -319,12 +298,12 @@ class AttendanceModule extends CommandModule {
         players.forEach(v => {
             table.push([
                 v.name,
-                v.raids.num + ' of ' + pad(2, v.raids.possible) + ' (' + pad(4, Math.round(v.raids.pct) + '%') + ')',
-                v.fights.num + ' (' + pad(4, Math.round(v.fights.pct) + '%') + ')'
+                v.raids.num + ' of ' + pad(3, v.raids.possible) + ' (' + pad(4, Math.round(v.raids.pct) + '%') + ')',
+                numeral(v.fights.num).format('0,0') + ' (' + pad(4, Math.round(v.fights.pct) + '%') + ')'
             ])
         })
 
-        out += `Here's the attendance situation for the past **${attendance.raids.length}** raids (_${attendance.fights} fights_)\n`
+        out += `${numberOfActivePlayers} active players' attendance of the past **${attendance.raids.length}** raids (_${numeral(attendance.fights).format('0,0')} fights_)\n`
         out += '```\n'
         out += table.toString() + '\n'
 
@@ -404,17 +383,157 @@ class AttendanceModule extends CommandModule {
         return Promise.resolve(`okay, '${alt}' is now mapped to '${main}'.`)
     }
 
+    _getArguments (params) {
+        const args = {
+            character: null,
+            numberOfRaids: this.config.defaultNumRaids
+        }
+
+        if (!/^\d+$/.test(params[0])) {
+            args.character = params.shift()
+        }
+
+        args.numberOfRaids = Common.getIntegerBetween(params.shift(), {min: 1, default: this.config.defaultNumRaids})
+
+        return args
+    }
+
+    _assembleSimpleAttendanceData (character, attendance) {
+        if (!attendance.players.length) {
+            return {content: `No players found matching _${character}_.`}
+        }
+
+        let out = ''
+        let player
+
+        attendance.players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
+
+        if (attendance.players.length > 1) {
+            const thisManyPlayers = attendance.players.length > 2 ? attendance.players.length : 'both'
+            out += `Your query matched more than one player, showing attendance for ${thisManyPlayers}.\n\n`
+        }
+
+        while (player = attendance.players.shift()) {
+            out += `**${player.name}** has attended **${player.raids.num}** of **${player.raids.possible}** (**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids.\n`
+        }
+
+        return {content: out}
+    }
+
+    _getKillCounts (bossName, reports) {
+        const bosses = {}
+        const difficulties = {
+            3: 'Normal',
+            4: 'Heroic',
+            5: 'Mythic'
+        }
+        const zones = {
+            10: 'Emerald Nightmare',
+            12: 'Trial of Valor'
+        }
+
+        if (bossName) {
+            bossName = bossName.toLowerCase()
+        }
+
+        for (const report of reports) {
+            for (const fight of report.fights) {
+                if (fight.boss === 0) {
+                    continue
+                }
+                if (bossName && fight.name.toLowerCase().indexOf(bossName) !== 0) {
+                    continue
+                }
+
+                const difficulty = difficulties[fight.difficulty]
+
+                if (!bosses.hasOwnProperty(fight.name)) {
+                    bosses[fight.name] = {}
+                }
+                if (!bosses[fight.name].hasOwnProperty(difficulty)) {
+                    bosses[fight.name][difficulty] = {
+                        'firstKill': 0,
+                        'kills': 0,
+                        'wipes': 0
+                    }
+                }
+
+                if (fight.kill) {
+                    if (!bosses[fight.name][difficulty].kills) {
+                        bosses[fight.name][difficulty].firstKill = report.start + fight.start_time
+                    }
+
+                    ++bosses[fight.name][difficulty].kills
+                } else if (fight.bossPercentage > 0 && !bosses[fight.name][difficulty].kills) {
+                    ++bosses[fight.name][difficulty].wipes
+                }
+            }
+        }
+
+        return bosses
+    }
+
+    _assembleKillCounts (bosses) {
+        let str = ''
+
+        for (const boss of Object.keys(bosses)) {
+            str += `**${boss}**\n`
+
+            for (const difficulty of Object.keys(bosses[boss])) {
+                const stats = bosses[boss][difficulty]
+
+                str += `\n  _${difficulty}_: `
+                if (stats.kills) {
+                    str += `**${stats.kills}** kill${stats.kills > 1 ? 's' : ''}. `
+                }
+
+                if (stats.wipes) {
+                    str += `**${stats.wipes}** wipe${stats.wipes > 1 ? 's' : ''}`
+                    if (stats.kills) {
+                        str += ` before first kill. `
+                    } else {
+                        str += '. '
+                    }
+                }
+
+                if (stats.kills) {
+                    str += `First kill on: **${moment(stats.firstKill).format(this.bot.config.date.human)}**`
+                }
+            }
+            str += '\n\n'
+        }
+
+        return {content: str}
+    }
+
     Message (message) {
         const params = this._getParams(message)
+        const args = this._getArguments(params)
         const trigger = this._getTrigger(message)
 
         if (trigger === 'alt') {
             return this._manageAlts(params)
         }
 
+        if (trigger === 'kills') {
+            return this._getReports(120)
+                .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                .then(this._getKillCounts.bind(this, args.character))
+                .then(this._assembleKillCounts.bind(this))
+        }
+
         if (trigger === 'att') {
-            return this
-                ._getReports(params)
+            const promise = this._getReports(args.numberOfRaids)
+                .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                .then(this._collectAttendance.bind(this))
+
+            if (args.character) {
+                return promise
+                    .then(this._filterSpecificCharacter.bind(this, args.character))
+                    .then(this._assembleSimpleAttendanceData.bind(this, args.character))
+            }
+
+            return promise
                 .then(this._filterInactiveMembers.bind(this))
                 .then(this._assembleAttendanceData.bind(this))
         }

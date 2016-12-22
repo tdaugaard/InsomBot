@@ -1,3 +1,7 @@
+'use strict'
+
+const TextChannel = require('./TextChannel')
+
 class Message {
     constructor (roles, content) {
         this.author = {
@@ -23,18 +27,18 @@ class Message {
             })
         })
 
-        this.channel = {
+        this.channel = new TextChannel({
             id: 1,
             type: 'text',
             name: 'general',
             recipient: Object.assign({}, this.author)
-        }
+        })
 
         this.content = content
     }
 
     reply (text) {
-        this.logger.info("Bot would've replied:\n" + this.colors.green.bold(text))
+        this.logger.info("Bot would've replied to a message:\n" + this.colors.green.bold(text))
         return Promise.resolve(this)
     }
 }

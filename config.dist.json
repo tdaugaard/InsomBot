@@ -9,6 +9,7 @@
     },
     "date": {
         "long": "YYYY-MM-DD HH:mm",
+        "short_date": "MMM Do HH:mm",
         "short": "DD-MM-YYYY",
         "human": "MMMM Do YYYY"
     },
@@ -24,7 +25,7 @@
             "raffleNotify": "@here"
         },
         "Attendance": {
-            "enabled": false
+            "enabled": false,
             "roles": [
                 "Officer"
             ],
@@ -47,11 +48,15 @@
             ]
         },
     },
-    "warcraftlogs": {
-        "guild": "",
+    "guild": {
+        "name": "",
         "realm": "",
         "region": "",
-        "key": ""
+        "api": {
+            "wcl": "",
+            "blizzard": ""
+        }
     },
+    "persistsDir": "~/.discordbot",
     "cacheDirectory": "/tmp/cache/"
 }

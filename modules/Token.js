@@ -5,10 +5,10 @@ const logger = require('../logger')
 const Common = require('../common')
 const numeral = require('numeral')
 const moment = require('moment')
-const request = require('request')
 const deferred = require('deferred')
+const request = require('request')
 const cachedRequest = require('cached-request')(request)
-const MessageEmbed = require('./lib/MessageEmbed')
+const RichEmbed = require('discord.js').RichEmbed
 
 class TokenModule extends CommandModule {
     constructor (parent, config) {
@@ -44,28 +44,25 @@ class TokenModule extends CommandModule {
     }
 
     Message (message) {
-        return this.getHistory()
+        return this
+            .getHistory()
             .then(json => {
-                const region = this.bot.config.warcraftlogs.region.toUpperCase()
+                const region = this.bot.config.guild.region.toUpperCase()
                 const data = json.update[region]
                 const goldPerDayToPlayForFree = numeral(data.raw.buy / 30).format('0,0')
-                const embed = new MessageEmbed('WoW Token Price Data')
+                const embed = new RichEmbed({color: 3447003})
 
-                embed.color = 3447003
-                embed.timestamp = moment.unix(data.raw.updated).toDate()
+                embed
+                    .setTimestamp(moment.unix(data.raw.updated).toDate())
 
-                embed.addField('Current Price', data.formatted.buy, true)
-                embed.addField('24h Range', data.formatted['24min'] + ' - ' + data.formatted['24max'], true)
-                embed.addField('Sells Within', data.formatted.timeToSell, true)
-                embed.addField('Play for Free', `Make about **${goldPerDayToPlayForFree}g** per day.`, true)
+                    .addField('Current Price', data.formatted.buy, true)
+                    .addField('24h Range', data.formatted['24min'] + ' - ' + data.formatted['24max'], true)
+                    .addField('Sells Within', data.formatted.timeToSell, true)
+                    .addField('Play for Free', `Make about **${goldPerDayToPlayForFree}g** per day.`, true)
 
-                embed.image = {
-                    url: data.formatted.sparkurl
-                }
-                embed.provider = {
-                    name: 'WoW Token Info',
-                    url: 'https://wowtoken.info/'
-                }
+                    .setImage(data.formatted.sparkurl)
+                    .setFooter('http://wowtoken.info/')
+                    .setThumbnail('https://wow.zamimg.com/images/wow/icons/large/wow_token01.jpg')
 
                 return {
                     embed: {embed: embed}

@@ -19,24 +19,6 @@ logger.transports.console.level = 'error'
 Message.prototype.logger = logger
 Message.prototype.colors = Colors
 
-function processMessage (msg) {
-    const defer = deferred()
-
-    bot.checkMessageForKeywords(msg.content)
-        .then(keyword => {
-            // Messages which aren't meant for the bot will simply be ignored.
-            if (!keyword) {
-                logger.warn('No keyword found')
-                return
-            }
-
-            bot.runKeywordFunction(keyword, msg)
-                .then(defer.resolve, defer.reject)
-        })
-
-    return defer.promise
-}
-
 const roles = ['@everyone', 'Great Leader', 'Officer', 'Raider']
 let bot
 
@@ -47,18 +29,37 @@ before(function (done) {
 
     bot = new DiscordBot(env)
     bot.on('ready', () => {
-        logger.transports.console.level = 'silly'
+        logger.transports.console.level = 'none'
 
         defer.resolve(done())
     })
 
     return defer.promise
 })
+
+describe('!att', function () {
+    it('should display information attendance for the past 100 raids', function () {
+        this.timeout(0)
+        let promise = bot.processMessage(new Message(roles, '!att 130'))
+
+        return expect(promise).to.eventually.have.property('content')
+    })
+})
+
+describe('!self', function () {
+    it('should display information about the bot', function () {
+        let promise = bot.processMessage(new Message(roles, '!self'))
+
+        return expect(promise).to.eventually.have.property('embed')
+    })
+})
+
 describe('!token', function () {
     it('should contain the price range and a picture', function () {
-        let promise = processMessage(new Message(roles, '!token'))
+        this.timeout(0)
+        let promise = bot.processMessage(new Message(roles, '!token'))
 
-        return expect(promise).to.eventually.be.a.string()
+        return expect(promise).to.eventually.have.property('embed')
     })
 })
 
@@ -68,95 +69,88 @@ describe('!roll', function () {
     }
 
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!roll lol'))
-            .then(function (msg) {
-                throw new Error(msg)
-            })
+        return bot.processMessage(new Message(roles, '!roll lol'))
             .catch(err => {
-                expect(err).to.equal('Please enter a number')
+                return expect(err).to.equal('Please enter a number')
             })
     })
 
     it('should be within 0 - 100', function () {
-        let promise = processMessage(new Message(roles, '!roll'))
+        let promise = bot.processMessage(new Message(roles, '!roll'))
             .then(parseRollResult)
 
         return expect(promise).to.eventually.be.within(0, 100)
     })
 
     it('should be within 200 - 400', function () {
-        let promise = processMessage(new Message(roles, '!roll 200 400'))
+        let promise = bot.processMessage(new Message(roles, '!roll 200 400'))
         .then(parseRollResult)
 
         return expect(promise).to.eventually.be.within(200, 400)
     })
 
     it('should be within 200 - 400', function () {
-        let promise = processMessage(new Message(roles, '!roll -200 400'))
+        let promise = bot.processMessage(new Message(roles, '!roll -200 400'))
         .then(parseRollResult)
 
         return expect(promise).to.eventually.be.within(0, 400)
     })
 })
-/*
 
 describe('!break', function () {
     function parseTimerResult (msg) {
-        return parseInt(msg.match(/@here (\d+) minutes? break timer set\./)[1])
+        return parseInt(msg.content.match(/@here (\d+) minutes? break timer set\./)[1])
     }
 
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!break lol'))
-            .then(function (msg) {
-                throw new Error(msg)
-            })
+        return bot.processMessage(new Message(roles, '!break lol'))
             .catch(err => {
                 expect(err).to.equal('Please enter positive number')
             })
     })
 
     it('should set a timer for 20 minutes', function () {
-        let promise = processMessage(new Message(roles, '!break 20'))
+        let promise = bot.processMessage(new Message(roles, '!break 20'))
             .then(parseTimerResult)
 
         return expect(promise).to.eventually.equal(20)
     })
 
-    it('should reset the timer', function () {
-        return processMessage(new Message(roles, '!break -10'))
-            .then(function (msg) {
-                throw new Error(msg)
-            })
+    it('should reject with an error', function () {
+        return bot.processMessage(new Message(roles, '!break -10'))
             .catch(err => {
                 expect(err).to.equal('Please enter positive number')
             })
     })
 
+    it('should cancel the timer', function () {
+        let promise = bot.processMessage(new Message(roles, '!break 0'))
+
+        expect(promise).to.eventually.equal('break cancelled.')
+    })
+
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!break 0,5'))
-            .then(function (msg) {
-                throw new Error(msg)
-            })
+        bot.processMessage(new Message(roles, '!break 0'))
             .catch(err => {
-                expect(err.message).to.equal('@here break timer reset.')
+                expect(err).to.equal('Please enter positive number')
             })
     })
 
-    it('should set a timer for 1 minute', function () {
-        let promise = processMessage(new Message(roles, '!break 1'))
+    it('should reset a timer for 1 minute', function () {
+        let promise = bot.processMessage(new Message(roles, '!break 1'))
             .then(parseTimerResult)
 
         return expect(promise).to.eventually.equal(1)
     })
 })
-
+/*
 describe('!doge', function () {
     function parseDogeResult (msg) {
         return !!msg.match(/https:\/\/i\.yais\.dk\/.+\.png/)
     }
 
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!doge'))
+        return bot.processMessage(new Message(roles, '!doge'))
             .then(function (msg) {
                 throw new Error(msg)
             })
@@ -166,7 +160,7 @@ describe('!doge', function () {
     })
     it('should return a URL to yais.dk', function () {
         this.timeout(1000)
-        let promise = processMessage(new Message(roles, '!doge bark woof meow'))
+        let promise = bot.processMessage(new Message(roles, '!doge bark woof meow'))
             .then(parseDogeResult)
 
         return expect(promise).to.eventually.be.true
@@ -180,13 +174,13 @@ describe('!alt', function () {
     }
 
     it('should add character as alt to a main', function () {
-        let promise = processMessage(new Message(roles, '!alt Demonsdemons Níz'))
+        let promise = bot.processMessage(new Message(roles, '!alt Demonsdemons Níz'))
 
         return expect(promise).to.eventually.equal("okay, 'Demonsdemons' is now mapped to 'Níz'.")
     })
 
     it('should reject adding an existing alt', function () {
-        return processMessage(new Message(roles, '!alt Demonsdemons Níz'))
+        return bot.processMessage(new Message(roles, '!alt Demonsdemons Níz'))
             .then(function (msg) {
                 throw new Error(msg)
             })
@@ -196,7 +190,7 @@ describe('!alt', function () {
     })
 
     it('should reject adding a main as an alt', function () {
-        return processMessage(new Message(roles, '!alt Níz Demonsdemons'))
+        return bot.processMessage(new Message(roles, '!alt Níz Demonsdemons'))
             .then(function (msg) {
                 throw new Error(msg)
             })
@@ -207,7 +201,7 @@ describe('!alt', function () {
     })
 
     it('should reject adding a main as an alt', function () {
-        return processMessage(new Message(roles, '!alt Níz null'))
+        return bot.processMessage(new Message(roles, '!alt Níz null'))
             .then(function (msg) {
                 throw new Error(msg)
             })
@@ -218,7 +212,7 @@ describe('!alt', function () {
     })
 
     it('should unmap alt from main', function () {
-        let promise = processMessage(new Message(roles, '!alt Demonsdemons null'))
+        let promise = bot.processMessage(new Message(roles, '!alt Demonsdemons null'))
 
         return expect(promise).to.eventually.equal('okay, \'Demonsdemons\' is unmapped.')
     })
@@ -230,7 +224,7 @@ describe('!manage', function () {
     }
 
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!enmod loldongs'))
+        return bot.processMessage(new Message(roles, '!enmod loldongs'))
             .then(function (msg) {
                 throw new Error(msg)
             })
@@ -240,7 +234,7 @@ describe('!manage', function () {
     })
 
     it('such module. very disable. wow', function () {
-        let promise = processMessage(new Message(roles, '!dismod Doge'))
+        let promise = bot.processMessage(new Message(roles, '!dismod Doge'))
             .then(v => {
                 return !bot.getModuleByName('Doge').enabled
             })
@@ -248,7 +242,7 @@ describe('!manage', function () {
         return expect(promise).to.eventually.be.false
     })
     it('should reject with an error', function () {
-        return processMessage(new Message(roles, '!dismod Doge'))
+        return bot.processMessage(new Message(roles, '!dismod Doge'))
             .then(function (msg) {
                 throw new Error(msg)
             })

@@ -2,8 +2,11 @@
 
 const CommandModule = require('../CommandModule')
 const logger = require('../logger')
+const Common = require('../common')
 const dot = require('dot-object')
+const util = require('util')
 const colors = require('colors')
+const RichEmbed = require('discord.js').RichEmbed
 
 // Necessary to overwrite existing properties on an object
 dot.override = true
@@ -42,6 +45,9 @@ class ManageModule extends CommandModule {
             })
             .addTrigger('!save', {
                 'short': 'Save current module configuration to `config.json`'
+            })
+            .addTrigger('!eval', {
+                'short': 'Eval javascript code and return the result. \'this\' = DiscordBot'
             })
             .addTrigger('!cvar', {
                 'short': 'Display or modify a configuration variable',
@@ -152,9 +158,7 @@ class ManageModule extends CommandModule {
     }
 
     _restartBot () {
-        const isRunningInPM2 = process.env.hasOwnProperty('PM2_USAGE')
-
-        if (!isRunningInPM2) {
+        if (!Common.runningUnderPM()) {
             return Promise.reject("Can't do that since I'm not running under a process manager.")
         }
 
@@ -272,6 +276,42 @@ class ManageModule extends CommandModule {
         return Promise.resolve("here's the current configuration " + subsection + 'in dot-notation:\n' + str)
     }
 
+    _evalExpression (msg) {
+        const code = msg.content.replace(/^!\w+\s*/, '').trim()
+        const bot = this.bot
+
+        if (!code.length) {
+            return Promise.reject('what? _what?_ **what?**')
+        }
+
+        let ret
+        let isError = false
+        let embedColor = 1497911
+
+        try {
+            ret = eval(code)
+        } catch (e) {
+            isError = true
+            ret = e.toString()
+            embedColor = 14358038
+        }
+
+        ret = util.inspect(ret)
+        ret = '```javascript\n' + ret + '\n```'
+
+        const embed = new RichEmbed({color: embedColor})
+        embed.setTitle('JavaScript Evaluator')
+        embed.addField('Input', '`' + code + '`')
+
+        try {
+            embed.addField(isError ? 'Error' : 'Output', ret)
+        } catch (e) {
+            return Promise.reject(util.inspect(e))
+        }
+
+        return Promise.resolve({embed: {embed: embed}})
+    }
+
     Message (message) {
         const trigger = this._getTrigger(message)
         const params = this._getParams(message)
@@ -283,6 +323,7 @@ class ManageModule extends CommandModule {
             case 'mods': return this._displayModules()
             case 'triggers': return this._displayTriggers()
             case 'save': return this._saveConfig()
+            case 'eval': return this._evalExpression(message)
             case 'cvar': return this._modifyConfiguration(params)
             case 'restart': return this._restartBot()
         }

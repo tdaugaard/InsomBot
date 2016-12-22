@@ -15,6 +15,7 @@
     "array-difference": "0.0.1",
     "array-intersection": "^0.1.2",
     "async": "^2.1.4",
+    "cached-request": "^1.1.0",
     "cheerio": "^0.22.0",
     "cli-table2": "^0.2.0",
     "deferred": "^0.7.5",
@@ -29,7 +30,9 @@
     "pad": "^1.0.2",
     "promise": "^7.1.1",
     "request": "*",
+    "shuffle-array": "^1.0.0",
     "sort-by": "^1.1.1",
+    "string-argv": "0.0.2",
     "urban": "^0.2.4",
     "winston": "^2.3.0"
   },

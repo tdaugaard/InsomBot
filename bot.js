@@ -4,8 +4,9 @@ const glob = require('glob')
 const colors = require('colors')
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
 const util = require('util')
-const MessageEmbed = require('./modules/lib/MessageEmbed')
+const RichEmbed = require('discord.js').RichEmbed
 const EventEmitter = require('events').EventEmitter
 const storage = require('node-persist')
 
@@ -28,6 +29,12 @@ class DiscordBot extends EventEmitter {
                 dir: env.persistsDir
             })
         }
+
+        this.on('ready', () => {
+            if (this.discord) {
+                this.discord.user.setGame('node.js ' + process.version + ' on ' + os.type())
+            }
+        })
 
         this._loadModules()
     }
@@ -57,12 +64,10 @@ class DiscordBot extends EventEmitter {
         const config = this.config.modules[name] || {}
         const enabled = !config.hasOwnProperty('enabled') || config.enabled
         const blacklist = config.hasOwnProperty('blacklisted') && config.blacklisted
-        const rDisabled = '❌'.red.bold
-        const rEnabled = '✓'.green.bold
 
         if (blacklist) {
             logger.warn('%s Not loading blacklisted module %s.',
-                rDisabled,
+                Common.IconDisabled,
                 colors.blue.bold(name)
             )
 
@@ -82,7 +87,7 @@ class DiscordBot extends EventEmitter {
         }
 
         logger.info('%s Loaded module %s providing %s.',
-            module.enabled ? rEnabled : rDisabled,
+            module.enabled ? Common.IconEnabled : Common.IconDisabled,
             colors.blue.bold(name),
             triggers.length ? triggers.join(', ').yellow.bold : 'nothing'
         )
@@ -91,7 +96,6 @@ class DiscordBot extends EventEmitter {
     }
 
     _unloadModule (moduleName) {
-        const rDisabled = '❌'.red.bold
         const module = this.getModuleByName(moduleName)
         const modulePath = this._findModulePathByName(moduleName)
 
@@ -100,7 +104,7 @@ class DiscordBot extends EventEmitter {
         Common.deleteNodeModule(modulePath)
         delete this.modules[moduleName]
 
-        logger.info('%s Unloaded module %s.', rDisabled, colors.blue.bold(moduleName))
+        logger.info('%s Unloaded module %s.', Common.IconDisabled, colors.blue.bold(moduleName))
     }
 
     disableModule (moduleName) {
@@ -257,6 +261,12 @@ class DiscordBot extends EventEmitter {
             this.getChannelString(channel)
         )
 
+        promise.catch(err => {
+            this.emit('end', null)
+
+            logger.error(err)
+        })
+
         return promise
     }
 
@@ -285,7 +295,7 @@ class DiscordBot extends EventEmitter {
             if (reply.hasOwnProperty('file')) {
                 promise = message.channel.sendFile(reply.file, null, reply.content || '')
             } else {
-                reply = reply instanceof MessageEmbed ? {embed: reply.embed} : reply
+                reply = reply instanceof RichEmbed ? {embed: reply.embed} : reply
                 promise = message.channel.sendMessage(reply.content || '', reply.embed || {})
             }
 
@@ -357,14 +367,23 @@ class DiscordBot extends EventEmitter {
             this.emit('end', message)
         }, 15 * 1000)
 
-        return module.Message(message)
+        const promise = module.Message(message)
+
+        if (!promise) {
+            return Promise.reject('Invalid Promise returned from ' + module.getName() + '.Message().')
+        }
+
+        return promise
             .then(reply => {
                 clearTimeout(timeoutProcessingRequest)
                 this.sendReply(message, reply)
                 this.emit('end', message)
+
+                return reply
             })
             .catch(err => {
                 clearTimeout(timeoutProcessingRequest)
+                this.emit('end', message)
                 if (err) {
                     this.sendReply(message, err)
                 }

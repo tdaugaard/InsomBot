@@ -4,7 +4,7 @@ const CommandModule = require('../CommandModule')
 const Common = require('../common')
 const logger = require('../logger')
 const Raffle = require('./lib/Raffle')
-const MessageEmbed = require('./lib/MessageEmbed')
+const RichEmbed = require('discord.js').RichEmbed
 const numeral = require('numeral')
 const moment = require('moment')
 const sortBy = require('sort-by')
@@ -187,10 +187,11 @@ class RollModule extends CommandModule {
             }
         })
 
-        const embed = new MessageEmbed(`Raffle by ${raffle.author.username}`)
-
-        embed.addField('Prize', `**${raffle.about}**`, true)
-        embed.addField('Expires', 'In ' + Common.relativeTime(moment(raffle.end).diff()), true)
+        const embed = new RichEmbed({color: 3447003})
+        embed
+            .setTitle(`Raffle by ${raffle.author.username}`)
+            .addField('Prize', `**${raffle.about}**`, true)
+            .addField('Expires', 'In ' + Common.relativeTime(moment(raffle.end).diff()), true)
 
         rollers
             .slice(0, 5)
