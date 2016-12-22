@@ -1,12 +1,22 @@
 const colors = require('colors')
+const IconDisabled = '❌'.red.bold
+const IconEnabled = '✓'.green.bold
 
 class Common {
+
+    static get IconDisabled () { return IconDisabled }
+    static get IconEnabled () { return IconEnabled }
+
     static * objectIterator (obj) {
         for (let k in obj) {
             if (obj.hasOwnProperty(k)) {
                 yield obj[k]
             }
         }
+    }
+
+    static runningUnderPM () {
+        return process.env.hasOwnProperty('PM2_USAGE')
     }
 
     static logRequestCompletion (logger, endpoint, err, res) {
