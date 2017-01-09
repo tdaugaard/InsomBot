@@ -86,9 +86,9 @@ class MythicAffixModule extends CommandModule {
         const thisAffixIndex = affixIndex || this._findCurentAffixIndex()
         const embed = new RichEmbed({color: 3447003})
         const longestAffixName = Affixes.pairs.reduce((carry, v) => {
-                const len = v.reduce((ncarry, nv) => nv.length > ncarry ? nv.length : ncarry, 0)
-                return len > carry ? len : carry
-            }, 0)
+            const len = v.reduce((ncarry, nv) => nv.length > ncarry ? nv.length : ncarry, 0)
+            return len > carry ? len : carry
+        }, 0)
         const affixList = Affixes.pairs
             .slice(thisAffixIndex)
             .concat(
@@ -96,15 +96,11 @@ class MythicAffixModule extends CommandModule {
             )
         let affixListString = ''
 
-        //embed.setTitle(`Mythic+ Affix List Relative to This Reset`)
-
         for (let index = 0; index < affixList.length; index++) {
             affixListString += '`' + (index === 0 ? 'current : ' : `+${index} reset: `)
             affixListString += affixList[index].map(v => pad(v, longestAffixName)).join(' - ')
             affixListString += '`\n'
         }
-
-        console.log(affixListString)
 
         embed.addField('Mythic+ Affix List Relative to this Reset', affixListString)
 
