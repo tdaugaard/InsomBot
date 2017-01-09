@@ -2,3 +2,4 @@ config.json
 mocha
 node_modules/
 modules/*.disabled
+.cache/
