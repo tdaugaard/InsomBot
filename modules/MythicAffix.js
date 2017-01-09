@@ -2,6 +2,7 @@
 
 const CommandModule = require('../CommandModule')
 const logger = require('../logger')
+const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed
 const moment = require('moment')
@@ -71,7 +72,7 @@ class MythicAffixModule extends CommandModule {
     }
 
     _getFutureAffixes (weeksAhead) {
-        weeksAhead = parseInt(weeksAhead, 10)
+        weeksAhead = parseInt(weeksAhead, 10) || 1
         const thisAffix = this._findFutureAffix(weeksAhead)
         const embed = new RichEmbed({color: 3447003})
         const futureTime = weeksAhead === 1 ? 'next reset' : `in ${weeksAhead} resets`
@@ -81,10 +82,43 @@ class MythicAffixModule extends CommandModule {
         return {embed: {embed: embed}}
     }
 
+    _getAffixTable (affixIndex) {
+        const thisAffixIndex = affixIndex || this._findCurentAffixIndex()
+        const embed = new RichEmbed({color: 3447003})
+        const longestAffixName = Affixes.pairs.reduce((carry, v) => {
+                const len = v.reduce((ncarry, nv) => nv.length > ncarry ? nv.length : ncarry, 0)
+                return len > carry ? len : carry
+            }, 0)
+        const affixList = Affixes.pairs
+            .slice(thisAffixIndex)
+            .concat(
+                Affixes.pairs.slice(0, thisAffixIndex)
+            )
+        let affixListString = ''
+
+        //embed.setTitle(`Mythic+ Affix List Relative to This Reset`)
+
+        for (let index = 0; index < affixList.length; index++) {
+            affixListString += '`' + (index === 0 ? 'current : ' : `+${index} reset: `)
+            affixListString += affixList[index].map(v => pad(v, longestAffixName)).join(' - ')
+            affixListString += '`\n'
+        }
+
+        console.log(affixListString)
+
+        embed.addField('Mythic+ Affix List Relative to this Reset', affixListString)
+
+        return {embed: {embed: embed}}
+    }
+
     Message (message) {
         const params = this._getParams(message)
 
         if (params.length) {
+            if (params[0] == 'list') {
+                return Promise.resolve(this._getAffixTable())
+            }
+
             return Promise.resolve(this._getFutureAffixes(params[0]))
         }
 
@@ -95,7 +129,3 @@ class MythicAffixModule extends CommandModule {
 module.exports = (parent, config) => {
     return new MythicAffixModule(parent, config)
 }
-/* const l = new MythicAffixModule()
-
-console.log(util.inspect(l._getAffixes(), false, 4, true))
-*/
