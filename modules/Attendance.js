@@ -16,6 +16,7 @@ const PlayerAttendance = require('./lib/PlayerAttendance')
 const RaidAttendance = require('./lib/RaidAttendance')
 const WarcraftLogs = require('./lib/WarcraftLogs')
 const util = require('util')
+
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
         super(parent, config)
@@ -431,6 +432,7 @@ class AttendanceModule extends CommandModule {
             10: 'Emerald Nightmare',
             12: 'Trial of Valor'
         }
+        let bossFightsFound = 0
 
         if (bossName) {
             bossName = bossName.toLowerCase()
@@ -441,9 +443,10 @@ class AttendanceModule extends CommandModule {
                 if (fight.boss === 0) {
                     continue
                 }
-                if (bossName && fight.name.toLowerCase().indexOf(bossName) !== 0) {
+                if (bossName && fight.name.toLowerCase().indexOf(bossName) === -1) {
                     continue
                 }
+                ++bossFightsFound
 
                 const difficulty = difficulties[fight.difficulty]
 
@@ -468,6 +471,10 @@ class AttendanceModule extends CommandModule {
                     ++bosses[fight.name][difficulty].wipes
                 }
             }
+        }
+
+        if (!bossFightsFound) {
+            return Promise.reject("no bosses found matching that text.")
         }
 
         return bosses
@@ -516,6 +523,10 @@ class AttendanceModule extends CommandModule {
         }
 
         if (trigger === 'kills') {
+            if (!args.character) {
+                return Promise.reject('which boss?')
+            }
+
             return this._getReports(120)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
                 .then(this._getKillCounts.bind(this, args.character))
