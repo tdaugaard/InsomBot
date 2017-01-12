@@ -385,16 +385,17 @@ class AttendanceModule extends CommandModule {
     }
 
     _getArguments (params) {
+        const myParams = params.slice(0)
         const args = {
             character: null,
             numberOfRaids: this.config.defaultNumRaids
         }
 
-        if (!/^\d+$/.test(params[0])) {
-            args.character = params.shift()
+        if (!/^\d+$/.test(myParams[0])) {
+            args.character = myParams.shift()
         }
 
-        args.numberOfRaids = Common.getIntegerBetween(params.shift(), {min: 1, default: this.config.defaultNumRaids})
+        args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
 
         return args
     }
