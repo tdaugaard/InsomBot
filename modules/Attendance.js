@@ -15,7 +15,7 @@ const difference = require('array-difference')
 const PlayerAttendance = require('./lib/PlayerAttendance')
 const RaidAttendance = require('./lib/RaidAttendance')
 const WarcraftLogs = require('./lib/WarcraftLogs')
-const util = require('util')
+const BossNameMatcher = require('./lib/BossNameMatcher')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -422,7 +422,8 @@ class AttendanceModule extends CommandModule {
         return {content: out}
     }
 
-    _getKillCounts (bossName, reports) {
+    _getKillCounts (bossNames, reports) {
+        const bossMatcher = new BossNameMatcher(bossNames)
         const bosses = {}
         const difficulties = {
             3: 'Normal',
@@ -435,16 +436,9 @@ class AttendanceModule extends CommandModule {
         }
         let bossFightsFound = 0
 
-        if (bossName) {
-            bossName = bossName.toLowerCase()
-        }
-
         for (const report of reports) {
             for (const fight of report.fights) {
-                if (fight.boss === 0) {
-                    continue
-                }
-                if (bossName && fight.name.toLowerCase().indexOf(bossName) === -1) {
+                if (fight.boss === 0 || !bossMatcher.match(fight.name)) {
                     continue
                 }
                 ++bossFightsFound
@@ -524,13 +518,13 @@ class AttendanceModule extends CommandModule {
         }
 
         if (trigger === 'kills') {
-            if (!args.character) {
+            if (!params.length) {
                 return Promise.reject('which boss?')
             }
 
             return this._getReports(120)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
-                .then(this._getKillCounts.bind(this, args.character))
+                .then(this._getKillCounts.bind(this, params))
                 .then(this._assembleKillCounts.bind(this))
         }
 
