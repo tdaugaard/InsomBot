@@ -4,7 +4,6 @@ const logger = require('../../logger')
 const Common = require('../../common.js')
 const deferred = require('deferred')
 const async = require('async')
-const difference = require('array-difference')
 
 class WarcraftLogs {
     constructor (request, config) {

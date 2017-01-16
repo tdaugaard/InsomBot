@@ -1,7 +1,6 @@
 'use strict'
 
 const CommandModule = require('../CommandModule')
-const logger = require('../logger')
 const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed
@@ -111,7 +110,7 @@ class MythicAffixModule extends CommandModule {
         const params = this._getParams(message)
 
         if (params.length) {
-            if (params[0] == 'list') {
+            if (params[0] === 'list') {
                 return Promise.resolve(this._getAffixTable())
             }
 

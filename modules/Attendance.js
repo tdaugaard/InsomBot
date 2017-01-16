@@ -97,7 +97,6 @@ class AttendanceModule extends CommandModule {
 
     _collectAttendance (reports) {
         const attendance = new RaidAttendance(reports)
-        let reportIndex = 0
 
         for (const report of reports) {
             const fightIds = report.fights
@@ -141,8 +140,6 @@ class AttendanceModule extends CommandModule {
                     player.lastAttendance = report.start
                     player.fights.num += v.fights.filter(v => fightIds.indexOf(v.id) !== -1).length
                 })
-
-            ++reportIndex
         }
 
         return this._aggregateAttendance(attendance)
@@ -406,7 +403,6 @@ class AttendanceModule extends CommandModule {
         }
 
         let out = ''
-        let player
 
         attendance.players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
 
@@ -429,10 +425,6 @@ class AttendanceModule extends CommandModule {
             3: 'Normal',
             4: 'Heroic',
             5: 'Mythic'
-        }
-        const zones = {
-            10: 'Emerald Nightmare',
-            12: 'Trial of Valor'
         }
         let bossFightsFound = 0
 
@@ -469,7 +461,7 @@ class AttendanceModule extends CommandModule {
         }
 
         if (!bossFightsFound) {
-            return Promise.reject("no bosses found matching that text.")
+            return Promise.reject('no bosses found matching that text.')
         }
 
         return bosses
