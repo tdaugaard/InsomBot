@@ -411,7 +411,7 @@ class AttendanceModule extends CommandModule {
             out += `Your query matched more than one player, showing attendance for ${thisManyPlayers}.\n\n`
         }
 
-        while (player = attendance.players.shift()) {
+        for (const player of attendance.players) {
             out += `**${player.name}** has attended **${player.raids.num}** of **${player.raids.possible}** (**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids.\n`
         }
 
