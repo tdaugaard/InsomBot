@@ -10,7 +10,7 @@ const request = require('request')
 const cachedRequest = require('cached-request')(request)
 const RichEmbed = require('discord.js').RichEmbed
 
-class TokenModule extends CommandModule {
+class WoWTokenModule extends CommandModule {
     constructor (parent, config) {
         super(parent, config)
 
@@ -72,5 +72,5 @@ class TokenModule extends CommandModule {
 }
 
 module.exports = (parent, config) => {
-    return new TokenModule(parent, config)
+    return new WoWTokenModule(parent, config)
 }
