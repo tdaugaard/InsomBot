@@ -1,6 +1,6 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 const escapeMarkdown = require('discord.js').escapeMarkdown
 
 class HelpModule extends CommandModule {

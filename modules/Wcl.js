@@ -1,8 +1,8 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
-const logger = require('../logger')
-const Common = require('../common')
+const CommandModule = require('../lib/CommandModule')
+const logger = require('../lib/logger')
+const Common = require('../lib/common')
 const request = require('request')
 const deferred = require('deferred')
 const cachedRequest = require('cached-request')(request)

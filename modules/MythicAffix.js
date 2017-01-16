@@ -1,6 +1,6 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed

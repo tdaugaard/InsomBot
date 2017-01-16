@@ -2,7 +2,7 @@
 
 const moment = require('moment')
 const EventEmitter = require('events').EventEmitter
-const logger = require('../../logger')
+const logger = require('../../lib/logger')
 
 class BreakTimer extends EventEmitter {
     constructor (end, author, channel) {

@@ -1,7 +1,7 @@
 'use strict'
 
-const logger = require('../../../logger')
-const Common = require('../../../common')
+const logger = require('../../../lib/logger')
+const Common = require('../../../lib/common')
 const FeedParser = require('feedparser')
 const cheerio = require('cheerio')
 const deferred = require('deferred')

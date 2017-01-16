@@ -1,6 +1,6 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 const deferred = require('deferred')
 const Urban = require('urban')
 

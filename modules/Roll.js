@@ -1,8 +1,8 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
-const Common = require('../common')
-const logger = require('../logger')
+const CommandModule = require('../lib/CommandModule')
+const Common = require('../lib/common')
+const logger = require('../lib/logger')
 const Raffle = require('./lib/Raffle')
 const RichEmbed = require('discord.js').RichEmbed
 const numeral = require('numeral')

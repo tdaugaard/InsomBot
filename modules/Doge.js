@@ -1,11 +1,11 @@
 'use strict'
 
-const logger = require('../logger')
-const Common = require('../common')
+const logger = require('../lib/logger')
+const Common = require('../lib/common')
 const shuffle = require('shuffle-array')
 const deferred = require('deferred')
 const request = require('request')
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 
 class DogeModule extends CommandModule {
     constructor (parent, config) {

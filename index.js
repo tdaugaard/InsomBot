@@ -3,7 +3,7 @@
 const env = require('./config.json')
 const DiscordBot = require('./bot.js')
 const Discord = require('discord.js')
-const logger = require('./logger.js')
+const logger = require('./lib/logger.js')
 
 logger.info('Connecting to Discord.')
 

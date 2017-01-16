@@ -1,7 +1,7 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
-const Common = require('../common')
+const CommandModule = require('../lib/CommandModule')
+const Common = require('../lib/common')
 const humanize = require('humanize')
 const RichEmbed = require('discord.js').RichEmbed
 const os = require('os')

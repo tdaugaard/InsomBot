@@ -1,4 +1,4 @@
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 const glob = require('glob')
 const path = require('path')
 

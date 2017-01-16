@@ -1,6 +1,6 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 const shuffle = require('shuffle-array')
 const RektsList = require('./data/rekts.json')
 

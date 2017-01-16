@@ -1,9 +1,9 @@
 'use strict'
 
 const moment = require('moment')
-const logger = require('../logger')
-const Common = require('../common')
-const CommandModule = require('../CommandModule')
+const logger = require('../lib/logger')
+const Common = require('../lib/common')
+const CommandModule = require('../lib/CommandModule')
 const BreakTimer = require('./lib/BreakTimer')
 
 class BreakModule extends CommandModule {

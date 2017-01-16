@@ -1,6 +1,6 @@
 'use strict'
 
-const CommandModule = require('../CommandModule')
+const CommandModule = require('../lib/CommandModule')
 
 class FlipModule extends CommandModule {
     constructor (parent, config) {

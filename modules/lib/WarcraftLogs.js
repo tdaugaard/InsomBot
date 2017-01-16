@@ -1,7 +1,7 @@
 'use strict'
 
-const logger = require('../../logger')
-const Common = require('../../common.js')
+const logger = require('../../lib/logger')
+const Common = require('../../lib/common')
 const deferred = require('deferred')
 const async = require('async')
 

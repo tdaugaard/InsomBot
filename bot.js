@@ -1,5 +1,5 @@
-const logger = require('./logger')
-const Common = require('./common')
+const logger = require('./lib/logger')
+const Common = require('./lib/common')
 const glob = require('glob')
 const colors = require('colors')
 const path = require('path')
