@@ -68,7 +68,9 @@ If `filterInactive` non-zero, the attendance list will exclude any characters fr
 `sameNameMapping` may be used to map alt characters to main characters to make sure they appear _as one_ in attendance records.
 
 _Trigger_: `!att <num_raids = 12>` Shows attendance percentages.  
-_Trigger_: `!att <player> <num_raids = 12>` shows attendance for a single player. `player` can be only the beginning of a player name.  
+_Trigger_: `!att <player>... <num_raids = 12>` shows simple attendance for one or more players. `player` can be a partial name matching at the beginning of a player name.  
+_Trigger_: `!att rm <name>...` Exclude one or more character(s) from attendance reports  
+_Trigger_: `!att reset <name>...` Reset exclusion of one or more character(s) from attendance reports  
 _Trigger_: `!alt <alt_name> <main_name>` Map an alt character to a main  
 _Trigger_: `!alt <alt_name> null` Remove an alt character mapping
 
