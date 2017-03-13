@@ -111,15 +111,15 @@ class AttendanceModule extends CommandModule {
             })
 
             report.friendlies
-                .filter(v => ['NPC', 'Boss', 'Pet'].indexOf(v.type) === -1)
+                .filter(v => !['NPC', 'Boss', 'Pet'].includes(v.type))
                 .forEach(v => {
                     const name = this._resolveCharacterName(v.name)
 
-                    if (this.config.excludeNames.indexOf(v.name) !== -1) {
+                    if (this.config.excludeNames.includes(v.name)) {
                         return true
                     }
 
-                    if (attendance.characterNames.indexOf(v.name) === -1) {
+                    if (!attendance.characterNames.includes(v.name)) {
                         attendance.characterNames.push(v.name)
                     }
 
@@ -133,7 +133,7 @@ class AttendanceModule extends CommandModule {
 
                     const player = attendance.players[name]
 
-                    if (player.raids.ids.indexOf(report.id) === -1) {
+                    if (!player.raids.ids.includes(report.id)) {
                         player.raids.ids.push(report.id)
                     }
 
@@ -142,7 +142,7 @@ class AttendanceModule extends CommandModule {
                     }
 
                     player.lastAttendance = report.start
-                    player.fights.num += v.fights.filter(v => fightIds.indexOf(v.id) !== -1).length
+                    player.fights.num += v.fights.filter(v => !fightIds.includes(v.id)).length
                 })
         }
 
@@ -233,7 +233,7 @@ class AttendanceModule extends CommandModule {
         const names = []
 
         for (const name of Object.keys(this.altsToMains)) {
-            if (attendees.indexOf(this.altsToMains[name]) === -1) {
+            if (!attendees.includes(this.altsToMains[name])) {
                 continue
             }
 
@@ -257,11 +257,11 @@ class AttendanceModule extends CommandModule {
         for (const name of Object.keys(this.altsToMains)) {
             const resolvedName = this.altsToMains[name]
 
-            if (attendees.indexOf(resolvedName) === -1) {
+            if (!attendees.includes(resolvedName)) {
                 continue
             }
 
-            if (players.indexOf(resolvedName) === -1) {
+            if (!players.includes(resolvedName)) {
                 players.push(resolvedName)
             }
         }
