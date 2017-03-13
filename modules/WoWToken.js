@@ -68,6 +68,9 @@ class WoWTokenModule extends CommandModule {
                     embed: {embed: embed}
                 }
             })
+            .catch(e => {
+               return 'I\'m unable to get WoW Token price data at this time: ' + e.code
+            })
     }
 }
 
