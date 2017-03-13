@@ -149,14 +149,17 @@ class AttendanceModule extends CommandModule {
         return this._aggregateAttendance(attendance)
     }
 
-    _filterSpecificCharacter (character, attendance) {
+    _filterSpecificCharacter (characters, attendance) {
         const players = []
-
-        character = character.toLowerCase()
+        const names = characters.map(v => v.toLowerCase())
 
         for (const player of Common.objectIterator(attendance.players)) {
-            if (player.name.toLowerCase().indexOf(character) === 0) {
-                players.push(player)
+            let playerName = player.name.toLowerCase()
+
+            for (const name of names) {
+                if (player.name.toLowerCase().indexOf(name) === 0) {
+                    players.push(player)
+                }
             }
         }
 
@@ -389,7 +392,7 @@ class AttendanceModule extends CommandModule {
         let myParams = params.slice(0)
         const args = {
             excludeName: false,
-            character: null,
+            character: [],
             numberOfRaids: this.config.defaultNumRaids
         }
 
@@ -402,16 +405,16 @@ class AttendanceModule extends CommandModule {
             myParams.shift()
         }
 
-        if (args.excludeName || args.clearExcludeName) {
-            args.character = myParams
-        } else {
-            if (!/^\d+$/.test(myParams[0])) {
-                args.character = myParams.shift()
-            }
+        while (myParams[0] && !/^\d+$/.test(myParams[0])) {
+            args.character.push(myParams.shift())
+        }
 
-            if (myParams.length) {
-                args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
-            }
+        if (myParams.length) {
+            args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
+        }
+
+        if (!args.character.length) {
+            args.character = null
         }
 
         return args
