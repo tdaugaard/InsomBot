@@ -422,6 +422,7 @@ class AttendanceModule extends CommandModule {
             return {content: `No players found matching _${character}_.`}
         }
 
+        const notBefore = moment().subtract(this.config.filterInactive, 'days')
         let out = ''
 
         attendance.players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
@@ -432,7 +433,12 @@ class AttendanceModule extends CommandModule {
         }
 
         for (const player of attendance.players) {
-            out += `**${player.name}** has attended **${player.raids.num}** of **${player.raids.possible}** (**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids.\n`
+            let lastAttendanceMoment = moment(player.lastAttendance)
+            let activeOrInactive = lastAttendanceMoment.isBefore(notBefore) ? "_inactive_" : "**active**"
+
+            out += `**${player.name}** (${activeOrInactive}) has attended **${player.raids.num}** of **${player.raids.possible}** `
+            out += `(**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids. `
+            out += `Last attendance: ${lastAttendanceMoment.format(this.bot.config.date.human)}\n`
         }
 
         return {content: out}
