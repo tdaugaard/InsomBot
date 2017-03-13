@@ -31,6 +31,7 @@
                 "Officer"
             ],
             "filterInactive": 30,
+            "matchAltRuns": "\\[Alts\\]$",
             "defaultNumRaids": 12
         },
         "Manage": {

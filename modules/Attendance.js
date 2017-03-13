@@ -564,6 +564,14 @@ class AttendanceModule extends CommandModule {
         return Promise.resolve('okay, _' + clearedNames.join('_, _') + '_ has been cleared and will be included in attendance records.')
     }
 
+    _filterAltRuns(reports) {
+        const altRx = new RegExp(this.config.matchAltRuns)
+
+        return reports.filter(v => {
+            return !altRx.test(v.title)
+        })
+    }
+
     Message (message) {
         const params = this._getParams(message)
         const args = this._getArguments(params)
@@ -580,6 +588,7 @@ class AttendanceModule extends CommandModule {
 
             return this._getReports(120)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                .then(this._filterAltRuns.bind(this))
                 .then(this._getKillCounts.bind(this, params))
                 .then(this._assembleKillCounts.bind(this))
         }
@@ -595,6 +604,7 @@ class AttendanceModule extends CommandModule {
 
             const promise = this._getReports(args.numberOfRaids)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                .then(this._filterAltRuns.bind(this))
                 .then(this._collectAttendance.bind(this))
 
             if (args.character) {
