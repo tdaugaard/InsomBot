@@ -1,7 +1,7 @@
 {
     "discord": {
-        "email": "",
-        "password": ""
+        "token": "",
+        "debugChannel": ""
     },
     "allowed": "members",
     "logger": {
