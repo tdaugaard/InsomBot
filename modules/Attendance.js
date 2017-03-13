@@ -437,9 +437,9 @@ class AttendanceModule extends CommandModule {
 
         for (const player of attendance.players) {
             let lastAttendanceMoment = moment(player.lastAttendance)
-            let activeOrInactive = lastAttendanceMoment.isBefore(notBefore) ? "_inactive_" : "**active**"
+            let activeOrInactive = lastAttendanceMoment.isBefore(notBefore) ? " (_inactive_)" : ""
 
-            out += `**${player.name}** (${activeOrInactive}) has attended **${player.raids.num}** of **${player.raids.possible}** `
+            out += `**${player.name}**${activeOrInactive} has attended **${player.raids.num}** of **${player.raids.possible}** `
             out += `(**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids. `
             out += `Last attendance: ${lastAttendanceMoment.format(this.bot.config.date.human)}\n`
         }
