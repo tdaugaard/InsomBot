@@ -115,6 +115,10 @@ class AttendanceModule extends CommandModule {
                 .forEach(v => {
                     const name = this._resolveCharacterName(v.name)
 
+                    if (this.config.excludeNames.indexOf(v.name) !== -1) {
+                        return true
+                    }
+
                     if (attendance.characterNames.indexOf(v.name) === -1) {
                         attendance.characterNames.push(v.name)
                     }
@@ -382,17 +386,33 @@ class AttendanceModule extends CommandModule {
     }
 
     _getArguments (params) {
-        const myParams = params.slice(0)
+        let myParams = params.slice(0)
         const args = {
+            excludeName: false,
             character: null,
             numberOfRaids: this.config.defaultNumRaids
         }
 
-        if (!/^\d+$/.test(myParams[0])) {
-            args.character = myParams.shift()
+        if (myParams[0] === 'rm') {
+            args.excludeName = true
+            myParams.shift()
+        } else
+        if (myParams[0] === 'reset') {
+            args.clearExcludeName = true
+            myParams.shift()
         }
 
-        args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
+        if (args.excludeName || args.clearExcludeName) {
+            args.character = myParams
+        } else {
+            if (!/^\d+$/.test(myParams[0])) {
+                args.character = myParams.shift()
+            }
+
+            if (myParams.length) {
+                args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
+            }
+        }
 
         return args
     }
@@ -500,6 +520,50 @@ class AttendanceModule extends CommandModule {
         return {content: str}
     }
 
+    _excludeName(names) {
+        if (!this.config.excludeNames) {
+            this.config.excludeNames = []
+        }
+
+        var excludedNames = []
+
+        for (var i = 0; i < names.length; i++) {
+            if (this.config.excludeNames.indexOf(names[i]) === -1) {
+                this.config.excludeNames.push(names[i])
+                excludedNames.push(names[i])
+            }
+        }
+
+        if (!excludedNames.length) {
+            return Promise.resolve('they\'re already excluded.')
+        }
+
+        return Promise.resolve('okay, _' + excludedNames.join('_, _') + '_ will be excluded from attendance records. Undo with `!att reset ' + excludedNames.join(' ') + '`')
+    }
+
+    _clearExcludedName(names) {
+        if (!this.config.excludeNames) {
+            return Promise.resolve('No names has been excluded.');
+        }
+
+        var clearedNames = []
+
+        for (var i = 0; i < names.length; i++) {
+            var index = this.config.excludeNames.indexOf(names[i]) 
+
+            if (index !== -1) {
+                this.config.excludeNames.splice(index, 1);
+                clearedNames.push(names[i])
+            }
+        }
+
+        if (!clearedNames.length) {
+            return Promise.resolve('they\'re not excluded.')
+        }
+
+        return Promise.resolve('okay, _' + clearedNames.join('_, _') + '_ has been cleared and will be included in attendance records.')
+    }
+
     Message (message) {
         const params = this._getParams(message)
         const args = this._getArguments(params)
@@ -521,6 +585,14 @@ class AttendanceModule extends CommandModule {
         }
 
         if (trigger === 'att') {
+            if (args.excludeName) {
+                return this._excludeName(args.character)
+            }
+
+            if (args.clearExcludeName) {
+                return this._clearExcludedName(args.character)
+            }
+
             const promise = this._getReports(args.numberOfRaids)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
                 .then(this._collectAttendance.bind(this))
