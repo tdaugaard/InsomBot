@@ -72,6 +72,11 @@ class MythicAffixModule extends CommandModule {
 
     _getFutureAffixes (weeksAhead) {
         weeksAhead = parseInt(weeksAhead, 10) || 1
+
+        if (weeksAhead < 0) {
+            return Promise.reject("please give a non-negative number.")
+        }
+
         const thisAffix = this._findFutureAffix(weeksAhead)
         const embed = new RichEmbed({color: 3447003})
         const futureTime = weeksAhead === 1 ? 'next reset' : `in ${weeksAhead} resets`
