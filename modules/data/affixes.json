@@ -11,7 +11,7 @@
         ["Bursting", "Skittish", "Tyrannical"],
         ["Teeming", "Quaking", "Fortified"],
         ["Raging", "Necrotic", "Tyrannical"],
-        ["Unknown", "Unknown", "Fortified"]
+        ["Bolstering", "Skittish", "Fortified"]
     ],
     "desc": {
         "Bolstering": "When any non-boss enemy dies, its death cry empowers nearby allies, increasing their maximum health and damage by 20%.",
