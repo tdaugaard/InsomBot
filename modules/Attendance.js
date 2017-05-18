@@ -32,6 +32,13 @@ class AttendanceModule extends CommandModule {
                 'raids = ' + this.config.defaultNumRaids
             ]
         })
+        this.addTrigger('!missed', {
+            'short': 'Display information about raid abscence from Warcraft Logs',
+            'params': [
+                'character',
+                'raids = ' + this.config.defaultNumRaids
+            ]
+        })
         this.addTrigger('!kills', {
             'short': 'Collect and display information kills and wipes from Warcraft Logs',
             'params': [
@@ -447,6 +454,59 @@ class AttendanceModule extends CommandModule {
         return {content: out}
     }
 
+    _assembleAbscenceData (character, attendance) {
+        if (!attendance.players.length) {
+            return {content: `No players found matching _${character}_.`}
+        }
+
+        const notBefore = moment().subtract(this.config.filterInactive, 'days')
+        let out = ''
+        let missedRaidsPlayerCount = 0
+
+        attendance.players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
+
+        if (attendance.players.length > 1) {
+            const thisManyPlayers = attendance.players.length > 2 ? attendance.players.length : 'both'
+            out += `Your query matched more than one player, showing attendance for ${thisManyPlayers}.\n\n`
+        }
+
+        out += `Abscence report for the past ${attendance.reports.length} raids (alt raids not included):\n\n`
+
+        for (const player of attendance.players) {
+            let missedRaids = player.raids.missed.reverse()
+            let lastAttendanceMoment = moment(player.lastAttendance)
+            let activeOrInactive = lastAttendanceMoment.isBefore(notBefore) ? " (_inactive_)" : ""
+
+            if (!missedRaids.length) {
+                out += `**${player.name}**${activeOrInactive} has not missed any raids. Stop questioning their dedication!\n`;
+                continue;
+            }
+
+            out += `**${player.name}**${activeOrInactive} missed these raids:\n\n`
+
+            for (const reportId of missedRaids) {
+                const report = this._findCombatReportById(attendance.reports, reportId)
+                const reportDate = moment(report.start).format(this.bot.config.date.human)
+
+                out += ` - ${reportDate}: _${report.title}_ (https://www.warcraftlogs.com/reports/${report.id})\n`
+            }
+
+            ++missedRaidsPlayerCount
+        }
+
+        if (missedRaidsPlayerCount) {
+            out += '\nIf any players _did_ attend the above raids, maybe it was on an unregistered alt. In that case, you can use `!alt <alt name> <main name>` to map it to their main, such that these kinds of misunderstandings won\'t happen in the future.\n'
+        }
+
+        return {content: out}
+    }
+
+    _findCombatReportById (reports, reportId) {
+        return reports.find(v => {
+            return v.id === reportId
+        })
+    }
+
     _getKillCounts (bossNames, reports) {
         const bossMatcher = new BossNameMatcher(bossNames)
         const bosses = {}
@@ -600,6 +660,19 @@ class AttendanceModule extends CommandModule {
                 .then(this._filterAltRuns.bind(this))
                 .then(this._getKillCounts.bind(this, params))
                 .then(this._assembleKillCounts.bind(this))
+        }
+
+        if (trigger === 'missed') {
+            if (!args.character) {
+                return Promise.reject('please specify the (partial) name of whoever\'s dedication you\'re questioning.')
+            }
+
+            return this._getReports(args.numberOfRaids)
+                .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                .then(this._filterAltRuns.bind(this))
+                .then(this._collectAttendance.bind(this))
+                .then(this._filterSpecificCharacter.bind(this, args.character))
+                .then(this._assembleAbscenceData.bind(this, args.character))
         }
 
         if (trigger === 'att') {
