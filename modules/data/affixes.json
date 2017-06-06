@@ -1,7 +1,7 @@
 {
     "start": {
         "date": "2017-05-01",
-        "pair": 4
+        "pair": 3
     },
     "pairs": [
         ["Raging", "Volcanic", "Tyrannical"],
@@ -11,7 +11,9 @@
         ["Bursting", "Skittish", "Tyrannical"],
         ["Teeming", "Quaking", "Fortified"],
         ["Raging", "Necrotic", "Tyrannical"],
-        ["Bolstering", "Skittish", "Fortified"]
+        ["Bolstering", "Skittish", "Fortified"],
+        ["Teeming", "Necrotic", "Tyrannical"],
+        ["Sanguine", "Grevious", "Fortified"]
     ],
     "desc": {
         "Bolstering": "When any non-boss enemy dies, its death cry empowers nearby allies, increasing their maximum health and damage by 20%.",
@@ -25,7 +27,7 @@
         "Volcanic": "While in combat, enemies periodically cause gouts of flame to erupt beneath the feet of distant players.",
         "Explosive": "Creatures have a chance to summon an Explosive Orb at a nearby location that will explode, inflicting damage 50% of the player’s maximum health as damage.",
         "Quaking": "Players will periodically Quake, inflicting 20% of the player’s maximum health as damage and interrupting spell casts of themselves and nearby allies.",
-        "Grievous": " While below 90% health, players are afflicted with Grievous Wound.",
+        "Grevious": " While below 90% health, players are afflicted with Grievous Wound.",
         "Bursting": "When slain, non-boss enemies explode, causing all players to suffer 10% of their maximum health in damage over 4 seconds. (5% every 2 seconds) This effect stacks."
     }
 }
