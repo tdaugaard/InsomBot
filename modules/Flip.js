@@ -1,6 +1,7 @@
 'use strict'
 
 const CommandModule = require('../lib/CommandModule')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class FlipModule extends CommandModule {
     constructor (parent, config) {
@@ -18,10 +19,10 @@ class FlipModule extends CommandModule {
         const params = this._getParams(message)
 
         if (params.length) {
-            return Promise.resolve({content: '┬─┬﻿ ノ( ゜-゜ノ)'})
+            return new UnTaggedResponse('┬─┬﻿ ノ( ゜-゜ノ)')
         }
 
-        return Promise.resolve({content: '(╯°□°）╯︵ ┻━┻'})
+        return new UnTaggedResponse('(╯°□°）╯︵ ┻━┻')
     }
 }
 

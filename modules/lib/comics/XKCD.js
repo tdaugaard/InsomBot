@@ -8,6 +8,7 @@ const deferred = require('deferred')
 const request = require('request')
 const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
+const FileEmbedResponse = require('../Response/FileEmbed')
 
 class XKCDComic {
     constructor (module) {
@@ -51,12 +52,10 @@ class XKCDComic {
                     publishDateString = 'today'
                 }
 
-                defer.resolve({
-                    content:
-                        `Latest: **${mostRecentComic.title}** from _${publishDateString}_` +
-                        `\nAlt text: _${imageAltText}_`,
-                    file: imageUrl
-                })
+                const title = `Latest: **${mostRecentComic.title}** from _${publishDateString}_` +
+                              `\nAlt text: _${imageAltText}_`
+
+                defer.resolve(new FileEmbedResponse(imageUrl, title))
             })
 
         cachedRequest({

@@ -3,6 +3,7 @@
 const CommandModule = require('../lib/CommandModule')
 const shuffle = require('shuffle-array')
 const RektsList = require('./data/rekts.json')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class RektModule extends CommandModule {
     constructor (parent, config) {
@@ -34,13 +35,13 @@ class RektModule extends CommandModule {
             .map(v => '☒ ' + v)
             .join('\n')
 
-        return {content: str}
+        return new UnTaggedResponse(str)
     }
 
     Message (message) {
         const params = this._getParams(message)
 
-        return Promise.resolve(this._pickRekts(params))
+        return this._pickRekts(params)
     }
 }
 

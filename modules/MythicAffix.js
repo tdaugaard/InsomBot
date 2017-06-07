@@ -1,6 +1,8 @@
 'use strict'
 
 const CommandModule = require('../lib/CommandModule')
+const DMResponse = require('./lib/Response/DirectMessage')
+const EmbedResponse = require('./lib/Response/Embed')
 const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed
@@ -67,14 +69,14 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField('Current Mythic+ Affixes', this._renderAffix(thisAffix))
 
-        return {embed: {embed: embed}}
+        return new EmbedResponse(embed)
     }
 
     _getFutureAffixes (weeksAhead) {
         weeksAhead = parseInt(weeksAhead, 10) || 1
 
         if (weeksAhead < 0) {
-            return Promise.reject("please give a non-negative number.")
+            throw 'please give a non-negative number.'
         }
 
         const thisAffix = this._findFutureAffix(weeksAhead)
@@ -83,7 +85,7 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField(`Mythic+ Affixes ${futureTime}`, this._renderAffix(thisAffix))
 
-        return {embed: {embed: embed}}
+        return new EmbedResponse(embed)
     }
 
     _getAffixTable (affixIndex) {
@@ -108,21 +110,31 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField('Mythic+ Affix List Relative to this Reset', affixListString)
 
-        return {embed: {embed: embed}}
+        return new EmbedResponse(embed)
+    }
+
+    _getAffixesDescriptionTable () {
+        const affixDescriptions = this._renderAffix(Object.keys(Affixes.desc))
+
+        return new DMResponse("Here's the complete list of Mythic+ affixes and their short descriptions.\n\n" + affixDescriptions)
     }
 
     Message (message) {
         const params = this._getParams(message)
 
         if (params.length) {
-            if (params[0] === 'list') {
-                return Promise.resolve(this._getAffixTable())
+            switch (params[0]) {
+                case 'list':
+                    return this._getAffixTable()
+
+                case 'desc':
+                    return this._getAffixesDescriptionTable()
             }
 
-            return Promise.resolve(this._getFutureAffixes(params[0]))
+            return this._getFutureAffixes(params[0])
         }
 
-        return Promise.resolve(this._getCurrentAffixes())
+        return this._getCurrentAffixes()
     }
 }
 

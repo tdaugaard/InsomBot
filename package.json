@@ -24,6 +24,7 @@
     "feedparser": "^1.1.5",
     "humanize": "0.0.9",
     "median": "0.0.2",
+    "mktemp": "^0.4.0",
     "moment": "^2.17.0",
     "node-persist": "^2.0.7",
     "numeral": "^1.5.6",

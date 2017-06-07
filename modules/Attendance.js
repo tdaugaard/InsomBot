@@ -16,6 +16,7 @@ const PlayerAttendance = require('./lib/PlayerAttendance')
 const RaidAttendance = require('./lib/RaidAttendance')
 const WarcraftLogs = require('./lib/WarcraftLogs')
 const BossNameMatcher = require('./lib/BossNameMatcher')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -91,15 +92,14 @@ class AttendanceModule extends CommandModule {
         return mapping
     }
 
-    _getReports (numberOfRaids) {
-        return this._wcl.getListOfLogs()
-            .then(reports => {
-                if (numberOfRaids < reports.length) {
-                    reports = reports.slice(-numberOfRaids)
-                }
+    async _getReports (numberOfRaids) {
+        let reports = await this._wcl.getListOfLogs()
 
-                return reports
-            })
+        if (numberOfRaids < reports.length) {
+            reports = reports.slice(-numberOfRaids)
+        }
+
+        return reports
     }
 
     _collectAttendance (reports) {
@@ -328,7 +328,7 @@ class AttendanceModule extends CommandModule {
             out += '\n_' + attendedOnAlts.join('_, _') + '_ also attended on alts, which _has_ been taken into account.'
         }
 
-        return {content: out}
+        return new UnTaggedResponse(out)
     }
 
     _filterInactiveMembers (attendance) {
@@ -357,19 +357,19 @@ class AttendanceModule extends CommandModule {
 
     _manageAlts (params) {
         if (params.length !== 2) {
-            return Promise.reject('Insufficient arguments given.')
+            throw 'Insufficient arguments given.'
         }
 
         const [alt, main] = params
         const performUnmapping = main === 'null'
 
         if (this.config.sameNameMapping.hasOwnProperty(alt)) {
-            return Promise.reject(`cannot ${performUnmapping ? 'un' : ''}map a main as an alt. _${alt}_ is main of _${this.config.sameNameMapping[alt].join('_, _')}_`)
+            throw `cannot ${performUnmapping ? 'un' : ''}map a main as an alt. _${alt}_ is main of _${this.config.sameNameMapping[alt].join('_, _')}_`
         }
 
         if (performUnmapping) {
             if (!this.altsToMains.hasOwnProperty(alt)) {
-                return Promise.reject(`'${alt}' is already unmapped.`)
+                throw `'${alt}' is already unmapped.`
             }
 
             delete this.altsToMains[alt]
@@ -377,11 +377,11 @@ class AttendanceModule extends CommandModule {
             this.config.sameNameMapping = this._makeAltToMainsMapping(this.altsToMains)
             this.bot.updateConfig()
 
-            return Promise.resolve(`okay, '${alt}' is unmapped.`)
+            return `okay, '${alt}' is unmapped.`
         }
 
         if (this.altsToMains.hasOwnProperty(alt)) {
-            return Promise.reject(`'${alt}' is already mapped to '${this.altsToMains[alt]}'`)
+            throw `'${alt}' is already mapped to '${this.altsToMains[alt]}'`
         }
 
         if (this.config.sameNameMapping.hasOwnProperty(main)) {
@@ -392,7 +392,7 @@ class AttendanceModule extends CommandModule {
 
         this.altsToMains = this._makeMainsToAltMapping(this.config.sameNameMapping)
 
-        return Promise.resolve(`okay, '${alt}' is now mapped to '${main}'.`)
+        return `okay, '${alt}' is now mapped to '${main}'.`
     }
 
     _getArguments (params) {
@@ -429,7 +429,7 @@ class AttendanceModule extends CommandModule {
 
     _assembleSimpleAttendanceData (character, attendance) {
         if (!attendance.players.length) {
-            return {content: `No players found matching _${character}_.`}
+            throw `no players found matching _${character}_.`
         }
 
         const notBefore = moment().subtract(this.config.filterInactive, 'days')
@@ -451,12 +451,12 @@ class AttendanceModule extends CommandModule {
             out += `Last attendance: ${lastAttendanceMoment.format(this.bot.config.date.human)}\n`
         }
 
-        return {content: out}
+        return new UnTaggedResponse(out)
     }
 
     _assembleAbscenceData (character, attendance) {
         if (!attendance.players.length) {
-            return {content: `No players found matching _${character}_.`}
+            throw `no players found matching _${character}_.`
         }
 
         const notBefore = moment().subtract(this.config.filterInactive, 'days')
@@ -498,7 +498,7 @@ class AttendanceModule extends CommandModule {
             out += '\nIf any players _did_ attend the above raids, maybe it was on an unregistered alt. In that case, you can use `!alt <alt name> <main name>` to map it to their main, such that these kinds of misunderstandings won\'t happen in the future.\n'
         }
 
-        return {content: out}
+        return new UnTaggedResponse(out)
     }
 
     _findCombatReportById (reports, reportId) {
@@ -550,7 +550,7 @@ class AttendanceModule extends CommandModule {
         }
 
         if (!bossFightsFound) {
-            return Promise.reject('no bosses found matching that text.')
+            throw 'no bosses found matching that text.'
         }
 
         return bosses
@@ -586,7 +586,7 @@ class AttendanceModule extends CommandModule {
             str += '\n\n'
         }
 
-        return {content: str}
+        return new UnTaggedResponse(str)
     }
 
     _excludeName(names) {
@@ -604,15 +604,15 @@ class AttendanceModule extends CommandModule {
         }
 
         if (!excludedNames.length) {
-            return Promise.resolve('they\'re already excluded.')
+            return "they're already excluded."
         }
 
-        return Promise.resolve('okay, _' + excludedNames.join('_, _') + '_ will be excluded from attendance records. Undo with `!att reset ' + excludedNames.join(' ') + '`')
+        return 'okay, _' + excludedNames.join('_, _') + '_ will be excluded from attendance records. Undo with `!att reset ' + excludedNames.join(' ') + '`'
     }
 
     _clearExcludedName(names) {
         if (!this.config.excludeNames) {
-            return Promise.resolve('No names has been excluded.');
+            return 'no names has been excluded.'
         }
 
         var clearedNames = []
@@ -627,10 +627,10 @@ class AttendanceModule extends CommandModule {
         }
 
         if (!clearedNames.length) {
-            return Promise.resolve('they\'re not excluded.')
+            return "they're not excluded."
         }
 
-        return Promise.resolve('okay, _' + clearedNames.join('_, _') + '_ has been cleared and will be included in attendance records.')
+        return 'okay, _' + clearedNames.join('_, _') + '_ has been cleared and will be included in attendance records.'
     }
 
     _filterAltRuns(reports) {
@@ -652,7 +652,7 @@ class AttendanceModule extends CommandModule {
 
         if (trigger === 'kills') {
             if (!params.length) {
-                return Promise.reject('which boss?')
+                throw 'which boss?'
             }
 
             return this._getReports(120)

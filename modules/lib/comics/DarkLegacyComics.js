@@ -8,6 +8,7 @@ const deferred = require('deferred')
 const request = require('request')
 const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
+const FileEmbedResponse = require('../Response/FileEmbed')
 
 class DarkLegacyComicsComic {
     constructor (module) {
@@ -50,7 +51,7 @@ class DarkLegacyComicsComic {
                     publishDateString = 'today'
                 }
 
-                defer.resolve({content: `${title} is **${mostRecentComic.title}** from ${publishDateString}`, file: imageUrl})
+                defer.resolve(new FileEmbedResponse(imageUrl, `${title} is **${mostRecentComic.title}** from ${publishDateString}`))
             })
 
         cachedRequest({
@@ -93,9 +94,9 @@ class DarkLegacyComicsComic {
 
             const title = $('title').text().trim()
             const imageSrc = $('.comic-image').attr('src')
-            const imageUrl = `http://www.darklegacycomics.com/${imageSrc}`
+            const imageUrl = 'http://www.darklegacycomics.com/' + imageSrc
 
-            defer.resolve(`\n**#${comicId} ${title}**:\n${imageUrl}`)
+            defer.resolve(new FileEmbedResponse(imageUrl, `**#${comicId} ${title}**`))
         })
 
         return defer.promise

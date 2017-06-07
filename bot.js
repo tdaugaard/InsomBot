@@ -10,6 +10,11 @@ const RichEmbed = require('discord.js').RichEmbed
 const EventEmitter = require('events').EventEmitter
 const storage = require('node-persist')
 
+const DMResponse = require('./modules/lib/Response/DirectMessage')
+const EmbedResponse = require('./modules/lib/Response/Embed')
+const FileEmbedResponse = require('./modules/lib/Response/FileEmbed')
+const UnTaggedResponse = require('./modules/lib/Response/UnTagged')
+
 class DiscordBot extends EventEmitter {
     constructor (env, discord) {
         super()
@@ -132,13 +137,13 @@ class DiscordBot extends EventEmitter {
 
     enableModule (moduleName) {
         if (!this.hasModule(moduleName)) {
-            throw new Error('No such module: ' + moduleName)
+            throw 'No such module: ' + moduleName
         }
 
         const module = this.getModuleByName(moduleName)
 
         if (module.enabled) {
-            throw new Error('Module is already enabled.')
+            throw 'Module is already enabled.'
         }
 
         module.enabled = true
@@ -152,7 +157,7 @@ class DiscordBot extends EventEmitter {
     reloadModule (moduleName) {
         let module = this.getModuleByName(moduleName)
         if (!module) {
-            return Promise.reject('No such module: ' + moduleName)
+            throw 'No such module: ' + moduleName
         }
 
         const modulePath = this._findModulePathByName(moduleName)
@@ -160,7 +165,7 @@ class DiscordBot extends EventEmitter {
         this._unloadModule(moduleName)
         module = this._loadModule(modulePath)
 
-        return Promise.resolve(module)
+        return module
     }
 
     _findModulePathByName (moduleName) {
@@ -254,15 +259,13 @@ class DiscordBot extends EventEmitter {
         const channel = this.discord.channels.get(channelId)
         let promise
 
-        if (reply.hasOwnProperty('embed')) {
-            promise = channel.sendMessage(reply.content || '', reply.embed || {})
+        if (reply instanceof EmbedResponse) {
+            promise = channel.sendMessage(reply.content || '', reply.embed)
         } else {
             promise = channel.sendMessage(reply)
         }
 
-        logger.info('Sent message to channel %s',
-            this.getChannelString(channel)
-        )
+        logger.info('Sent message to channel %s', this.getChannelString(channel))
 
         promise.catch(err => {
             this.emit('end', null)
@@ -277,7 +280,7 @@ class DiscordBot extends EventEmitter {
         let promise
 
         if (!reply) {
-            return Promise.reject()
+            throw 'the command/query surprisingly had no response.'
         }
 
         if (util.isString(reply)) {
@@ -295,17 +298,35 @@ class DiscordBot extends EventEmitter {
                 )
             }
         } else if (util.isObject(reply)) {
-            if (reply.hasOwnProperty('file')) {
+            if (reply instanceof FileEmbedResponse) {
                 promise = message.channel.sendFile(reply.file, null, reply.content || '')
-            } else {
-                reply = reply instanceof RichEmbed ? {embed: reply.embed} : reply
-                promise = message.channel.sendMessage(reply.content || '', reply.embed || {})
-            }
 
-            logger.info('Sent message to channel %s on behalf of %s',
-                this.getChannelString(message.channel),
-                this.getAuthorString(message.author)
-            )
+                logger.info('Sent message to channel %s initiated by %s',
+                    this.getChannelString(message.channel),
+                    this.getAuthorString(message.author)
+                )
+            } else if (reply instanceof DMResponse) {
+                promise = message.author.sendMessage(reply.content)
+
+                logger.info('Sent DM as a reply to message from %s in %s',
+                    this.getAuthorString(message.author),
+                    this.getChannelString(message.channel)
+                )
+            } else if (reply instanceof EmbedResponse) {
+                promise = message.channel.sendMessage('', reply)
+
+                logger.info('Sent message to channel %s initiated by %s',
+                    this.getChannelString(message.channel),
+                    this.getAuthorString(message.author)
+                )
+            } else {
+                promise = message.channel.sendMessage(reply.content)
+
+                logger.info('Sent message to channel %s initiated by %s',
+                    this.getChannelString(message.channel),
+                    this.getAuthorString(message.author)
+                )
+            }
         }
 
         promise.catch(err => {
@@ -340,12 +361,12 @@ class DiscordBot extends EventEmitter {
                colors.gray.bold('#' + user.discriminator)
     }
 
-    processMessage (message) {
+    async processMessage (message) {
         const trigger = message.content.split(' ', 2)[0]
         const module = this.getModuleByTrigger(trigger)
 
         if (!module) {
-            return Promise.reject()
+            return
         }
 
         const permission = module.allowed(message.member)
@@ -360,7 +381,7 @@ class DiscordBot extends EventEmitter {
         )
 
         if (!permission) {
-            return Promise.reject('Access denied.')
+            throw 'Access denied.'
         }
 
         this.emit('begin', message)
@@ -370,27 +391,20 @@ class DiscordBot extends EventEmitter {
             this.emit('end', message)
         }, 15 * 1000)
 
-        const promise = module.Message(message)
+        try {
+            const reply = await module.Message(message)
 
-        if (!promise) {
-            return Promise.reject('Invalid Promise returned from ' + module.getName() + '.Message().')
+            this.sendReply(message, reply)
+
+        } catch (err) {
+            if (err) {
+                this.sendReply(message, err)
+            }
         }
 
-        return promise
-            .then(reply => {
-                clearTimeout(timeoutProcessingRequest)
-                this.sendReply(message, reply)
-                this.emit('end', message)
+        clearTimeout(timeoutProcessingRequest)
 
-                return reply
-            })
-            .catch(err => {
-                clearTimeout(timeoutProcessingRequest)
-                this.emit('end', message)
-                if (err) {
-                    this.sendReply(message, err)
-                }
-            })
+        this.emit('end', message)
     }
 }
 

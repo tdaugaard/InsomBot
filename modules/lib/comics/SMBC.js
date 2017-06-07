@@ -8,6 +8,7 @@ const deferred = require('deferred')
 const request = require('request')
 const moment = require('moment')
 const cachedRequest = require('cached-request')(request)
+const FileEmbedResponse = require('../Response/FileEmbed')
 
 class SMBCComic {
     constructor (module) {
@@ -47,10 +48,7 @@ class SMBCComic {
                     publishDateString = 'today'
                 }
 
-                defer.resolve({
-                    content: `Latest: **${mostRecentComic.title}** from _${publishDateString}_`,
-                    file: imageUrl
-                })
+                defer.resolve(new FileEmbedResponse(imageUrl, `Latest: **${mostRecentComic.title}** from _${publishDateString}_`))
             })
 
         cachedRequest({

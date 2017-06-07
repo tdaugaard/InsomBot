@@ -6,6 +6,7 @@ const shuffle = require('shuffle-array')
 const deferred = require('deferred')
 const request = require('request')
 const CommandModule = require('../lib/CommandModule')
+const FileEmbedResponse = require('./lib/Response/FileEmbed')
 
 class DogeModule extends CommandModule {
     constructor (parent, config) {
@@ -26,7 +27,7 @@ class DogeModule extends CommandModule {
         const dogeWords = this.config.manyMuchWow
         const manyMuchWow = shuffle(dogeWords).slice(0, Math.min(params.length, dogeWords.length))
         const dogeParams = manyMuchWow.map((v, i) => v + ' ' + params[i])
-        const endpoint = `${this.config.suchBaseMuchUrl}${dogeParams.join('/')}/wow.png?split=false`
+        const endpoint = this.config.suchBaseMuchUrl + dogeParams.join('/') + '/wow.png?split=false'
 
         request({
             url: endpoint,
@@ -45,15 +46,16 @@ class DogeModule extends CommandModule {
         return defer.promise
     }
 
-    Message (message) {
+    async Message (message) {
         const params = this._getParams(message)
 
         if (!params.length) {
-            return Promise.reject('I ain\'t got nothing to work with _bruh_.')
+            throw "I ain't got nothing to work with _bruh_."
         }
 
-        return this._getDoge(params)
-            .then(doge => ({file: doge}))
+        const doge = await this._getDoge(params)
+
+        return new FileEmbedResponse(doge)
     }
 }
 

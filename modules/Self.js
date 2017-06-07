@@ -2,6 +2,9 @@
 
 const CommandModule = require('../lib/CommandModule')
 const Common = require('../lib/common')
+const EmbedResponse = require('./lib/Response/Embed')
+const FileEmbedResponse = require('./lib/Response/FileEmbed')
+
 const humanize = require('humanize')
 const RichEmbed = require('discord.js').RichEmbed
 const os = require('os')
@@ -49,11 +52,11 @@ class SelfModule extends CommandModule {
         const trigger = this._getTrigger(message)
 
         if (trigger === 'bugs') {
-            return Promise.resolve({content: 'True. fucking. story. brah.', file: 'https://i.yais.dk/zxYzAY.png'})
+            return new FileEmbedResponse('https://i.yais.dk/zxYzAY.png', 'True. fucking. story. brah.')
         }
 
         if (trigger === 'good') {
-            return Promise.resolve({content: '👌👀👌👀👌👀👌👀👌👀 good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌th 👌 ere👌👌👌 right✔there ✔✔if i do ƽaү so my selｆ 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit'})
+            return '👌👀👌👀👌👀👌👀👌👀 good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌th 👌 ere👌👌👌 right✔there ✔✔if i do ƽaү so my selｆ 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit'
         }
 
         if (trigger === 'self') {
@@ -69,7 +72,7 @@ class SelfModule extends CommandModule {
                 .addField('CPU Time', Common.relativeTime(process.cpuUsage().user / 1000), true)
                 .addField('Modules/Triggers', this.getModules().join(', '))
 
-            return Promise.resolve({embed: {embed: embed}})
+            return new EmbedResponse(embed)
         }
     }
 }

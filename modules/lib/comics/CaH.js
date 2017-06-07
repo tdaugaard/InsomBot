@@ -5,6 +5,7 @@ const Common = require('../../../lib/common')
 const cheerio = require('cheerio')
 const deferred = require('deferred')
 const request = require('request')
+const FileEmbedResponse = require('../Response/FileEmbed')
 
 class CaHComic {
     constructor (module) {
@@ -33,10 +34,7 @@ class CaHComic {
             const comicUrl = 'https:' + $('#rcg-comic > img').attr('src')
             const title = $('#page-heading h1').text()
 
-            defer.resolve({
-                content: title,
-                file: comicUrl
-            })
+            defer.resolve(new FileEmbedResponse(comicUrl, title))
         })
 
         return defer.promise

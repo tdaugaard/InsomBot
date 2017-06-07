@@ -74,7 +74,7 @@ discordjs
         }
     })
 
-    .on('message', function (msg) {
+    .on('message', async function (msg) {
         const channelType = msg.channel.type
 
         // We won't be processing our own messages.
@@ -104,12 +104,11 @@ discordjs
             return
         }
 
-        bot.processMessage(msg)
-            .catch(err => {
-                if (err) {
-                    logger.error(err)
-                }
-            })
+        try {
+            await bot.processMessage(msg)
+        } catch (err) {
+            logger.error(err)
+        }
     })
 
     .on('disconnected', function () {

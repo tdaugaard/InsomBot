@@ -107,10 +107,10 @@ class HelpModule extends CommandModule {
         const modules = this._getAllowedModules(message)
 
         if (params.length) {
-            return Promise.resolve(this._getModuleHelp(modules, message, params))
+            return this._getModuleHelp(modules, message, params)
         }
 
-        return Promise.resolve(this._getSimpleHelp(modules))
+        return this._getSimpleHelp(modules)
     }
 }
 

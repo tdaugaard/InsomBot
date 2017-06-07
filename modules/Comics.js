@@ -36,14 +36,14 @@ class ComicsModule extends CommandModule {
         const triggerInfo = this.triggers['!' + trigger]
 
         if (!triggerInfo) {
-            return Promise.reject('that ain\'t good.')
+            throw "'that ain't good."
         }
 
         const comicsModule = this.comics[triggerInfo.provider]
 
         if (params.length) {
             if (typeof comicsModule.getSpecificComic !== 'function') {
-                return Promise.reject(`sorry, ${triggerInfo.provider} doesn't support this. Yet.`)
+                throw `sorry, ${triggerInfo.provider} doesn't support this. Yet.`
             }
 
             return comicsModule.getSpecificComic(parseInt(params[0]))

@@ -5,6 +5,7 @@ const logger = require('../lib/logger')
 const Common = require('../lib/common')
 const CommandModule = require('../lib/CommandModule')
 const BreakTimer = require('./lib/BreakTimer')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class BreakModule extends CommandModule {
     constructor (parent, config) {
@@ -58,17 +59,17 @@ class BreakModule extends CommandModule {
             this.timers[msg.channel.id] = this._newTimer(end, msg.author, msg.channel)
         }
 
-        return Promise.resolve({content: '@here ' + minutes + ' minute' + (minutes > 1 ? 's' : '') + ' break timer set.'})
+        return new UnTaggedResponse('@here ' + minutes + ' minute' + (minutes > 1 ? 's' : '') + ' break timer set.')
     }
 
     _clearTimer (msg) {
         if (this.timers.hasOwnProperty(msg.channel.id)) {
             this._removeTimer(msg.channel.id)
 
-            return Promise.resolve('break cancelled.')
+            return 'break cancelled.'
         }
 
-        return Promise.reject('no timer was set.')
+        throw 'no timer was set.'
     }
 
     _timerExpired (timer) {
@@ -90,11 +91,11 @@ class BreakModule extends CommandModule {
 
         if (!params.length && timer) {
             const timeLeft = Common.relativeTime(moment(timer.end).diff(), true)
-            return Promise.resolve(`there's ${timeLeft} left of the break.`)
+            return `there's ${timeLeft} left of the break.`
         }
 
         if (isNaN(timeout) || timeout < 0) {
-            return Promise.reject('Please enter positive number')
+            throw 'please enter positive number'
         }
 
         if (timeout === 0) {

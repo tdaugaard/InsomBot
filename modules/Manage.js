@@ -7,6 +7,14 @@ const dot = require('dot-object')
 const util = require('util')
 const colors = require('colors')
 const RichEmbed = require('discord.js').RichEmbed
+const fs = require('fs')
+const os = require('os')
+const mktemp = require('mktemp')
+
+const DMResponse = require('./lib/Response/DirectMessage')
+const EmbedResponse = require('./lib/Response/Embed')
+const FileEmbedResponse = require('./lib/Response/FileEmbed')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 // Necessary to overwrite existing properties on an object
 dot.override = true
@@ -75,45 +83,44 @@ class ManageModule extends CommandModule {
 
     _disableModule (params) {
         if (!params.length) {
-            return Promise.reject('Please supply the name of a module to disable.')
+            throw 'please supply the name of a module to disable.'
         }
 
         if (params[0] === 'Manage') {
-            return Promise.reject('Cannot manage the Manage module.')
+            throw 'cannot manage the Manage module.'
         }
 
         try {
             const module = this.bot.disableModule(params[0])
-            return Promise.resolve(module.getName() + ' has been disabled.')
+            return module.getName() + ' has been disabled.'
         } catch (err) {
-            return Promise.reject(err.message)
+            throw err.message
         }
     }
 
     _enableModule (params) {
         if (!params.length) {
-            return Promise.reject('Please supply the name of a module to enable.')
+            throw 'please supply the name of a module to enable.'
         }
 
         if (params[0] === 'Manage') {
-            return Promise.reject('Cannot manage the Manage module.')
+            throw 'cannot manage the Manage module.'
         }
 
         try {
             const module = this.bot.enableModule(params[0])
-            return Promise.resolve(module.getName() + ' has been enabled.')
+            return module.getName() + ' has been enabled.'
         } catch (err) {
-            return Promise.reject(err.message)
+            throw err.message
         }
     }
 
-    _reloadModule (params) {
-        return this._disableModule(params)
+    async _reloadModule (params) {
+        const module = await this._disableModule(params)
             .then(this.bot.reloadModule.bind(this.bot, params[0]))
             .then(this._enableModule.bind(this, params))
-            .then(module => {
-                return params[0] + ' has been reloaded.'
-            })
+
+        return params[0] + ' has been reloaded.'
     }
 
     _displayModules () {
@@ -135,9 +142,7 @@ class ManageModule extends CommandModule {
             }
         }
 
-        const str = "alright, here's the available modules:\n" + mods.join('\n') + '\n'
-
-        return Promise.resolve(str)
+        return "alright, here's the available modules:\n" + mods.join('\n') + '\n'
     }
 
     _displayTriggers () {
@@ -152,24 +157,22 @@ class ManageModule extends CommandModule {
             triggers.push('`' + k + '` is handled by `' + botTriggers[k] + '`')
         }
 
-        const str = '\n' + triggers.join('\n') + '\n'
-
-        return Promise.resolve(str)
+        return '\n' + triggers.join('\n') + '\n'
     }
 
     _restartBot () {
         if (!Common.runningUnderPM()) {
-            return Promise.reject("Can't do that since I'm not running under a process manager.")
+            throw "can't do that since I'm not running under a process manager."
         }
 
         setTimeout(process.exit, 2000)
-        return Promise.resolve('okay, _brb_.')
+        return 'okay, _brb_.'
     }
 
     _saveConfig () {
         this.bot.saveConfig()
 
-        return Promise.resolve('configuration has been saved. Bot may need to be restarted in order for everything to take effect.')
+        return 'configuration has been saved. Bot may need to be restarted in order for everything to take effect.'
     }
 
     _modifyConfiguration (params) {
@@ -177,7 +180,7 @@ class ManageModule extends CommandModule {
 
         if (mode === 'set') {
             if (params.length < 3) {
-                return Promise.reject('Insufficient arguments given.')
+                throw 'insufficient arguments given.'
             }
 
             const cvar = params[1]
@@ -199,7 +202,7 @@ class ManageModule extends CommandModule {
                 dot.str(moduleCVar, value, moduleCfg)
                 this.bot.updateConfig()
 
-                return Promise.resolve('okay, (`' + matches[1] + '`) `' + moduleCVar + '` was `' + oldValue + '` is now `' + value + '`')
+                return 'okay, (`' + matches[1] + '`) `' + moduleCVar + '` was `' + oldValue + '` is now `' + value + '`'
             }
 
             logger.debug("Modifying CVar '%s' from '%s' => '%s'",
@@ -211,12 +214,12 @@ class ManageModule extends CommandModule {
             dot.str(cvar, value, this.bot.config)
             this.bot.updateConfig()
 
-            return Promise.resolve('okay, `' + cvar + '` was `' + oldValue + '` is now `' + value + '`')
+            return 'okay, `' + cvar + '` was `' + oldValue + '` is now `' + value + '`'
         }
 
         if (mode === 'del') {
             if (params.length < 2) {
-                return Promise.reject('Insufficient arguments given.')
+                throw 'insufficient arguments given.'
             }
 
             const cvar = params[1]
@@ -236,7 +239,7 @@ class ManageModule extends CommandModule {
                 dot.remove(moduleCVar, moduleCfg)
                 this.bot.updateConfig()
 
-                return Promise.resolve('okay, (`' + matches[1] + '`) `' + moduleCVar + '` was `' + oldValue + '` but is now deleted.')
+                return 'okay, (`' + matches[1] + '`) `' + moduleCVar + '` was `' + oldValue + '` but is now deleted.'
             }
 
             logger.debug("Deleting CVar '%s' which was '%s'.",
@@ -248,32 +251,44 @@ class ManageModule extends CommandModule {
 
             this.bot.updateConfig()
 
-            return Promise.resolve('okay, `' + cvar + '` was `' + oldValue + '` but is now deleted.')
+            return 'okay, `' + cvar + '` was `' + oldValue + '` but is now deleted.'
         }
 
+        return this._displayConfig(mode)
+    }
+
+    async _displayConfig (section) {
         var dots
         var subsection = ''
 
-        if (!mode) {
+        if (!section) {
             dots = dot.dot(this.bot.config)
         } else {
-            dots = dot.dot(dot.pick(mode, this.bot.config))
-            subsection = 'for subsection `' + mode + '` '
+            dots = dot.dot(dot.pick(section, this.bot.config))
+            subsection = 'for subsection `' + section + '` '
         }
 
-        var str = ''
+        var str = Object.keys(dots).map(k => {
+                return '`' + k + '` = `' + dots[k]
+            }).join('\n')
 
-        for (var k in dots) {
-            var value = dots[k]
-
-            if (k.toLowerCase().indexOf('pass') !== -1) {
-                value = '<Password Hidden>'
-            }
-
-            str += '`' + k + '` = `' + value + '`\n'
+        if (str.length <= 2000) {
+            return str
         }
 
-        return Promise.resolve("here's the current configuration " + subsection + 'in dot-notation:\n' + str)
+        // Save to a text file and embed that instead
+        try {
+            const writeFile = util.promisify(fs.writeFile)
+            const file = await mktemp.createFile(os.tmpdir() + '/dotconfig-XXXXX.txt')
+            const ret = await writeFile(file, str)
+
+            return new FileEmbedResponse(file, "Configuration is too large to display inline in a single message, so here's an attachment of the current configuration " + subsection + 'in dot-notation.')
+
+        } catch (err) {
+            console.error(err)
+        }
+
+        throw "it ain't working."
     }
 
     _evalExpression (msg) {
@@ -281,7 +296,7 @@ class ManageModule extends CommandModule {
         const bot = this.bot
 
         if (!code.length) {
-            return Promise.reject('what? _what?_ **what?**')
+            throw 'what? _what?_ **what?**'
         }
 
         let ret
@@ -306,10 +321,10 @@ class ManageModule extends CommandModule {
         try {
             embed.addField(isError ? 'Error' : 'Output', ret)
         } catch (e) {
-            return Promise.reject(util.inspect(e))
+            throw util.inspect(e)
         }
 
-        return Promise.resolve({embed: {embed: embed}})
+        return new EmbedResponse(embed)
     }
 
     Message (message) {
@@ -317,15 +332,15 @@ class ManageModule extends CommandModule {
         const params = this._getParams(message)
 
         switch (trigger) {
-            case 'dismod': return this._disableModule(params)
-            case 'enmod': return this._enableModule(params)
-            case 'reload': return this._reloadModule(params)
-            case 'mods': return this._displayModules()
+            case 'dismod':   return this._disableModule(params)
+            case 'enmod':    return this._enableModule(params)
+            case 'reload':   return this._reloadModule(params)
+            case 'mods':     return this._displayModules()
             case 'triggers': return this._displayTriggers()
-            case 'save': return this._saveConfig()
-            case 'eval': return this._evalExpression(message)
-            case 'cvar': return this._modifyConfiguration(params)
-            case 'restart': return this._restartBot()
+            case 'save':     return this._saveConfig()
+            case 'eval':     return this._evalExpression(message)
+            case 'cvar':     return this._modifyConfiguration(params)
+            case 'restart':  return this._restartBot()
         }
     }
 }

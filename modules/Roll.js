@@ -9,6 +9,8 @@ const numeral = require('numeral')
 const moment = require('moment')
 const sortBy = require('sort-by')
 const Table = require('cli-table2')
+const EmbedResponse = require('./lib/Response/Embed')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class RollModule extends CommandModule {
     constructor (parent, config) {
@@ -71,18 +73,18 @@ class RollModule extends CommandModule {
             .on('expire', this._raffleExpired.bind(this))
     }
 
-    _startRaffle (msg) {
+    async _startRaffle (msg) {
         const params = this._getParams(msg)
 
         if (!params.length) {
-            return Promise.reject('we need something to raffle about!')
+            throw 'we need something to raffle about!'
         }
 
         const raffle = this._newRaffle(params.join(' '), msg.author, msg.channel)
 
         this.raffles[msg.channel.id] = raffle
 
-        this.bot.sendChannelMessage(
+        const message = await this.bot.sendChannelMessage(
                 msg.channel.id,
                 this.config.raffleNotify +
                 ` <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
@@ -91,14 +93,13 @@ class RollModule extends CommandModule {
                 ' Any ties will be solved by re-rolling, naturally =)' +
                 '\n\nPlease note that raffles about pets, mounts, or similar things are usually only awarded to people who does not already have the item already.'
             )
-            .then(msg => {
-                if (this.config.pinAnnounceMsg) {
-                    raffle.announceMessageId = msg.id
-                    msg.pin()
-                }
-            })
 
-        return Promise.resolve()
+        if (this.config.pinAnnounceMsg) {
+            raffle.announceMessageId = message.id
+            message.pin()
+        }
+
+        return true
     }
 
     _getSortedRaffleRollers (raffle) {
@@ -152,26 +153,26 @@ class RollModule extends CommandModule {
         const raffle = this._getRaffle(msg.channel)
 
         if (!raffle) {
-            return Promise.reject('winner of what? There\'s no raffle going on.')
+            throw 'winner of what? There\'s no raffle going on.'
         }
 
         if (raffle.author.id !== msg.author.id) {
-            return Promise.reject(`the current raffle was started by ${raffle.author.username} - please wait until it's over to create yours.`)
+            throw `the current raffle was started by ${raffle.author.username} - please wait until it's over to create yours.`
         }
 
         if (raffle.ending) {
-            return Promise.reject('the raffle has already been called to an end - the winner will be announced shortly!')
+            throw 'the raffle has already been called to an end - the winner will be announced shortly!'
         }
 
         raffle.endRaffle(this.config.raffleEndGracePeriod)
 
         if (this.config.raffleEndGracePeriod) {
-            return Promise.resolve({content: this.config.raffleNotify + ` the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`})
+            return new UnTaggedResponse(this.config.raffleNotify + ` the raffle for **${raffle.about}** will end in 2 minutes! Make sure to \`!roll\` for it, if you haven't already!`)
         }
 
         // If there's no grace period for ending the raffle, we don't need to reply as the expiration of the
         // raffle timer will immediately reply.
-        return Promise.resolve('')
+        return true
     }
 
     _getRaffle (channel) {
@@ -218,7 +219,7 @@ class RollModule extends CommandModule {
             embed.addField('High Rollers', 'No rollers yet :(')
         }
 
-        return Promise.resolve({embed: {embed: embed}})
+        return new EmbedResponse(embed)
     }
 
     _rollDice (msg) {
@@ -240,7 +241,7 @@ class RollModule extends CommandModule {
             }
 
             if (isNaN(result.low) || isNaN(result.high)) {
-                return Promise.reject('Please enter a number')
+                throw 'Please enter a number'
             }
 
             if (result.low > result.high) {
@@ -256,10 +257,10 @@ class RollModule extends CommandModule {
             raffle.addRoll(msg.author, result.dice)
         }
 
-        return Promise.resolve(result)
+        return result
     }
 
-    Message (message) {
+    async Message (message) {
         const trigger = this._getTrigger(message)
         const raffle = this._getRaffle(message.channel)
         let roll
@@ -269,27 +270,25 @@ class RollModule extends CommandModule {
 
         if (trigger === 'roll') {
             if (raffle && roll) {
-                return Promise.reject(`you already rolled a _${roll.dice}_ in this raffle.`)
+                throw `you already rolled a _${roll.dice}_ in this raffle.`
             }
 
-            return this._rollDice(message)
-                .then(result => {
-                    const cheated = result.high === result.low
-                    var shitsOnFireYo = ''
+            const diceRoll = await this._rollDice(message)
+            const cheated = diceRoll.high === diceRoll.low
+            var shitsOnFireYo = ''
 
-                    if (result.dice === result.high && !cheated) {
-                        shitsOnFireYo = ' :fire: :first_place:'
-                    } else
-                    if (result.dice === result.low) {
-                        shitsOnFireYo = ' :facepalm:'
-                    }
+            if (diceRoll.dice === diceRoll.high && !cheated) {
+                shitsOnFireYo = ' :fire: :first_place:'
+            } else
+            if (diceRoll.dice === diceRoll.low) {
+                shitsOnFireYo = ' :facepalm:'
+            }
 
-                    return 'you rolled _' + numeral(result.dice).format('0,0') +
-                          '_ (' + numeral(result.low).format('0,0') + ' to ' +
-                          numeral(result.high).format('0,0') + ')' +
-                          shitsOnFireYo +
-                          (result.raffle ? ` in the raffle for **${result.raffle.about}**` : '')
-                })
+            return 'you rolled _' + numeral(diceRoll.dice).format('0,0') +
+                '_ (' + numeral(diceRoll.low).format('0,0') + ' to ' +
+                numeral(diceRoll.high).format('0,0') + ')' +
+                shitsOnFireYo +
+                (diceRoll.raffle ? ` in the raffle for **${diceRoll.raffle.about}**` : '')
         }
 
         if (trigger === 'winner') {
@@ -302,10 +301,10 @@ class RollModule extends CommandModule {
                     return this._displayRaffleRolls(message)
                 }
 
-                return Promise.reject({content:
+                return new UnTaggedResponse(
                     `The current raffle by ${raffle.author.username} for **${raffle.about}** will expire on ${raffle.end}.` +
                     (roll ? ` You rolled _${roll.dice}_.` : ' You have not yet participated!')
-                })
+                )
             }
 
             return this._startRaffle(message)
