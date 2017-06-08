@@ -664,7 +664,7 @@ class AttendanceModule extends CommandModule {
 
         if (trigger === 'missed') {
             if (!args.character) {
-                return Promise.reject('please specify the (partial) name of whoever\'s dedication you\'re questioning.')
+                throw "please specify the (partial) name of whoever's dedication you're questioning."
             }
 
             return this._getReports(args.numberOfRaids)
