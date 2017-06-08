@@ -226,7 +226,7 @@ class RollModule extends CommandModule {
                 ])
             })
 
-        if (rollers) {
+        if (rollers.length) {
             embed.addField('High Rollers', '```' + table.toString() + '```')
         } else {
             embed.addField('High Rollers', 'No rollers yet :(')
