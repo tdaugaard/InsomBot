@@ -3,6 +3,7 @@
 const moment = require('moment')
 const EventEmitter = require('events').EventEmitter
 const logger = require('../../lib/logger')
+const Common = require('../../lib/common')
 
 class BreakTimer extends EventEmitter {
     constructor (end, author, channel) {
@@ -50,7 +51,7 @@ class BreakTimer extends EventEmitter {
     serialize () {
         return {
             end: this.end,
-            author: this.author,
+            author: Common.filterDiscordAuthorObject(this.author),
             channel: this.channel
         }
     }

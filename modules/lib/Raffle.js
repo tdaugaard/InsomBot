@@ -2,6 +2,7 @@
 
 const moment = require('moment')
 const BreakTimer = require('./BreakTimer')
+const Common = require('../../lib/common')
 
 class Raffle extends BreakTimer {
     constructor (about, author, channel) {
@@ -40,7 +41,7 @@ class Raffle extends BreakTimer {
         }
 
         this.rolls[user.id] = {
-            user: user,
+            user: Common.filterDiscordAuthorObject(user),
             time: new Date(),
             dice: dice
         }

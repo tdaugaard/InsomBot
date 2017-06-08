@@ -28,6 +28,7 @@
     "moment": "^2.17.0",
     "node-persist": "^2.0.7",
     "numeral": "^1.5.6",
+    "object.pick": "^1.2.0",
     "pad": "^1.0.2",
     "promise": "^7.1.1",
     "request": "*",
