@@ -30,7 +30,7 @@ class DiscordBot extends EventEmitter {
             logger.debug(`Using '${persistenceDir}' for module persistence.`)
 
             try {
-                fs.mkdirSync(persistenceDir, 0o644)
+                fs.mkdirSync(persistenceDir, 0o766)
             } catch (e) {}
 
             storage.initSync({
