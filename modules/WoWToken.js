@@ -9,6 +9,7 @@ const deferred = require('deferred')
 const request = require('request')
 const cachedRequest = require('cached-request')(request)
 const RichEmbed = require('discord.js').RichEmbed
+const EmbedResponse = require('./lib/Response/Embed')
 
 class WoWTokenModule extends CommandModule {
     constructor (parent, config) {
@@ -64,9 +65,7 @@ class WoWTokenModule extends CommandModule {
                 .setFooter('http://wowtoken.info/')
                 .setThumbnail('https://wow.zamimg.com/images/wow/icons/large/wow_token01.jpg')
 
-            return {
-                embed: {embed: embed}
-            }
+            return new EmbedResponse(embed)
         } catch (err) {
             throw 'I\'m unable to get WoW Token price data at this time: ' + err.code
         }

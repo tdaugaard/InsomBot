@@ -2,9 +2,7 @@
 
 class Embed {
     constructor (embed) {
-        this.embed = {
-            embed: embed
-        }
+        this.embed = embed
     }
 }
 

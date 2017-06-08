@@ -313,7 +313,7 @@ class DiscordBot extends EventEmitter {
                     this.getChannelString(message.channel)
                 )
             } else if (reply instanceof EmbedResponse) {
-                promise = message.channel.sendMessage('', reply)
+                promise = message.channel.sendMessage('', {embed: reply.embed})
 
                 logger.info('Sent message to channel %s initiated by %s',
                     this.getChannelString(message.channel),
