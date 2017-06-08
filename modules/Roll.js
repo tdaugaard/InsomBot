@@ -92,21 +92,21 @@ class RollModule extends CommandModule {
         this.raffles[msg.channel.id] = raffle
 
         const message = await this.bot.sendChannelMessage(
-                msg.channel.id,
-                this.config.raffleNotify +
-                ` <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
-                ' Type `!roll` to participate in the draw.' +
-                ` The raffle will automagically end in ${Common.relativeTime(moment(raffle.end).diff())} unless ${raffle.author.username} ends it earlier.` +
-                ' Any ties will be solved by re-rolling, naturally =)' +
-                '\n\nPlease note that raffles about pets, mounts, or similar things are usually only awarded to people who does not already have the item already.'
-            )
+            msg.channel.id,
+            this.config.raffleNotify +
+            ` <@${raffle.author.id}> has started a raffle for **${raffle.about}**!` +
+            ' Type `!roll` to participate in the draw.' +
+            ` The raffle will automagically end in ${Common.relativeTime(moment(raffle.end).diff())} unless ${raffle.author.username} ends it earlier.` +
+            ' Any ties will be solved by re-rolling, naturally =)' +
+            '\n\nPlease note that raffles about pets, mounts, or similar things are usually only awarded to people who does not already have the item already.'
+        )
 
         if (this.config.pinAnnounceMsg) {
             raffle.announceMessageId = message.id
             message.pin()
         }
 
-        return true
+        return false
     }
 
     _getSortedRaffleRollers (raffle) {
@@ -127,7 +127,7 @@ class RollModule extends CommandModule {
         delete this.raffles[channelId]
     }
 
-    _raffleExpired (raffle) {
+    async _raffleExpired (raffle) {
         const rollers = this._getSortedRaffleRollers(raffle)
 
         this._removeRaffle(raffle.channel.id)
@@ -138,22 +138,26 @@ class RollModule extends CommandModule {
 
         const winner = rollers.shift()
 
-        if (this.config.pinAnnounceMsg) {
-            const channel = this.bot.discord.channels.get(raffle.channel.id)
+        if (raffle.hasOwnProperty('announceMessageId')) {
+            try {
+                const channel = this.bot.discord.channels.get(raffle.channel.id)
+                const msgs = await channel.fetchPinnedMessages()
+                const msg = msgs.get(raffle.announceMessageId)
 
-            channel.fetchPinnedMessages()
-                .then(msgs => {
-                    const msg = msgs.get(raffle.announceMessageId)
-                    if (msg) {
-                        msg.unpin()
-                    }
-                })
+                if (msg) {
+                    msg.unpin()
+                }
+            } catch (err) {
+                logger.error(err)
+            }
         }
 
-        return this.bot.sendChannelMessage(raffle.channel.id,
+        this.bot.sendChannelMessage(raffle.channel.id,
             `:first_place: The raffle for **${raffle.about}** is over! <@${winner.user.id}> is the` +
             ` lucky winner with a roll of **${winner.dice}**! Collect your prize from <@${raffle.author.id}> =D`
         )
+
+        return false
     }
 
     _endRaffle (msg) {
@@ -179,7 +183,7 @@ class RollModule extends CommandModule {
 
         // If there's no grace period for ending the raffle, we don't need to reply as the expiration of the
         // raffle timer will immediately reply.
-        return true
+        return false
     }
 
     _getRaffle (channel) {
@@ -203,18 +207,20 @@ class RollModule extends CommandModule {
                 compact: true
             }
         })
-
+        const author = msg.channel.guild.members.get(raffle.author.id)
         const embed = new RichEmbed({color: 3447003})
+
         embed
-            .setTitle(`Raffle by ${raffle.author.username}`)
+            .setTitle(`Raffle by ${author.nickname}`)
             .addField('Prize', `**${raffle.about}**`, true)
             .addField('Expires', 'In ' + Common.relativeTime(moment(raffle.end).diff()), true)
 
         rollers
             .slice(0, 5)
             .forEach(v => {
+                const user = msg.channel.guild.members.get(v.user.id)
                 table.push([
-                    v.user.username,
+                    user.nickname || user.user.username,
                     moment(v.time).format(this.bot.config.date.short_date),
                     numeral(v.dice).format('0,0')
                 ])
@@ -226,7 +232,7 @@ class RollModule extends CommandModule {
             embed.addField('High Rollers', 'No rollers yet :(')
         }
 
-        return new EmbedResponse(embed)
+        return embed
     }
 
     _rollDice (msg) {
