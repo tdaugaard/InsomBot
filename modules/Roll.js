@@ -60,6 +60,14 @@ class RollModule extends CommandModule {
 
     _loadRaffles () {
         this.bot.storage.valuesWithKeyMatch(/^raffle_/).forEach(data => {
+            try {
+                const channel = this.bot.discord.channels.get(data.channel.id)
+            } catch (err) {
+                logger.info('!'.red.bold + ` Ignoring raffle for channel #${data.channel.name} as channel wasn't found.`)
+
+                return true
+            }
+
             logger.info('→'.blue.bold + ` Restoring raffle for channel #${data.channel.name}, expires on ${moment(data.end)}`)
             let raffle = this._newRaffle(data.about, data.author, data.channel)
             raffle.restore(data)
