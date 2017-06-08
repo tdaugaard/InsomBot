@@ -30,8 +30,11 @@ class AttendanceModule extends CommandModule {
         this.addTrigger('!att', {
             'short': 'Collect and display information about raid attendance from Warcraft Logs',
             'params': [
-                'character (optional)',
-                'raids = ' + this.config.defaultNumRaids
+                'character',
+                'raids = ' + this.config.defaultNumRaids,
+                '-diff [!](n|h|m)',
+                '-alt',
+                '-only-alt'
             ]
         })
         this.addTrigger('!missed', {
@@ -45,7 +48,7 @@ class AttendanceModule extends CommandModule {
             'short': 'Collect and display information kills and wipes from Warcraft Logs',
             'params': [
                 'boss (optional)',
-                'raids = 100'
+                'raids = 120'
             ]
         })
         this.addTrigger('!alt', {
@@ -107,9 +110,8 @@ class AttendanceModule extends CommandModule {
         const attendance = new RaidAttendance(reports)
 
         for (const report of reports) {
-            const fightIds = report.fights
-                .filter(v => v.boss !== 0)
-                .map(v => v.id)
+            const fights   = report.fights.filter(v => v.boss !== 0)
+            const fightIds = fights.map(v => v.id)
 
             if (!fightIds.length) {
                 logger.debug("Combat report %s does not have fights after filtering.", report.id)
@@ -174,6 +176,10 @@ class AttendanceModule extends CommandModule {
                     players.push(player)
                 }
             }
+        }
+
+        if (!players.length) {
+            throw `no players found matching _${characters.join(', ')}_.`
         }
 
         attendance.players = players
@@ -406,7 +412,12 @@ class AttendanceModule extends CommandModule {
         const args = {
             excludeName: false,
             character: [],
-            numberOfRaids: this.config.defaultNumRaids
+            numberOfRaids: this.config.defaultNumRaids,
+            filter: {
+                difficulty: null,
+                altRuns: false,
+                onlyAltRuns: false
+            }
         }
 
         if (myParams[0] === 'rm') {
@@ -418,12 +429,33 @@ class AttendanceModule extends CommandModule {
             myParams.shift()
         }
 
-        while (myParams[0] && !/^\d+$/.test(myParams[0])) {
+        while (myParams[0] && !/^(\d+|\-.+)$/.test(myParams[0])) {
             args.character.push(myParams.shift())
         }
 
-        if (myParams.length) {
-            args.numberOfRaids = Common.getIntegerBetween(myParams.shift(), {min: 1, default: this.config.defaultNumRaids})
+        while (myParams.length) {
+            const param = myParams.shift()
+
+            switch (param) {
+                case "-diff":
+                    if (!myParams.length) {
+                        throw "please give a difficulty to filter by: **n**ormal, **h**eroic, or **m**ythic (preceed by ! to negate the filter)"
+                    }
+
+                    args.filter.difficulty = myParams.shift()
+                break;
+
+                case "-alt":
+                    args.filter.altRuns = true
+                break;
+
+                case "-only-alt":
+                    args.filter.onlyAltRuns = true
+                break;
+
+                default:
+                    args.numberOfRaids = Common.getIntegerBetween(param, {min: 1, default: this.config.defaultNumRaids})
+            }
         }
 
         if (!args.character.length) {
@@ -433,11 +465,7 @@ class AttendanceModule extends CommandModule {
         return args
     }
 
-    _assembleSimpleAttendanceData (character, attendance) {
-        if (!attendance.players.length) {
-            throw `no players found matching _${character}_.`
-        }
-
+    _assembleSimpleAttendanceData (attendance) {
         const notBefore = moment().subtract(this.config.filterInactive, 'days')
         let out = ''
 
@@ -460,11 +488,7 @@ class AttendanceModule extends CommandModule {
         return new UnTaggedResponse(out)
     }
 
-    _assembleAbscenceData (character, attendance) {
-        if (!attendance.players.length) {
-            throw `no players found matching _${character}_.`
-        }
-
+    _assembleAbscenceData (attendance) {
         const notBefore = moment().subtract(this.config.filterInactive, 'days')
         let out = ''
         let missedRaidsPlayerCount = 0
@@ -624,7 +648,7 @@ class AttendanceModule extends CommandModule {
         var clearedNames = []
 
         for (var i = 0; i < names.length; i++) {
-            var index = this.config.excludeNames.indexOf(names[i]) 
+            var index = this.config.excludeNames.indexOf(names[i])
 
             if (index !== -1) {
                 this.config.excludeNames.splice(index, 1);
@@ -639,15 +663,59 @@ class AttendanceModule extends CommandModule {
         return 'okay, _' + clearedNames.join('_, _') + '_ has been cleared and will be included in attendance records.'
     }
 
-    _filterAltRuns(reports) {
+    _filterReports(filter, reports) {
         const altRx = new RegExp(this.config.matchAltRuns)
 
-        return reports.filter(v => {
-            return !altRx.test(v.title)
+        reports = reports.filter(report => {
+            if (filter.onlyAltRuns) {
+                if (!altRx.test(report.title)) {
+                    return false
+                }
+            } else
+            if (!filter.altRuns) {
+                if (altRx.test(report.title)) {
+                    return false
+                }
+            }
+
+            let fights = report.fights.filter(v => v.boss !== 0)
+
+            if (filter.difficulty) {
+                let difficulty = filter.difficulty
+                const negate_expr = difficulty.substring(0, 1) === '!'
+
+                if (negate_expr) {
+                    difficulty = difficulty.replace(/^!/, '')
+                }
+
+                switch (difficulty.substring(0, 1).toLowerCase()) {
+                    case "n": difficulty = 3; break;
+                    case "h": difficulty = 4; break;
+                    case "m": difficulty = 5; break;
+                    default:
+                        throw "please give a difficulty to filter by: **n**ormal, **h**eroic, or **m**ythic (preceed by ! to negate the filter)"
+                }
+
+                fights = fights.filter(v => {
+                    if (negate_expr) {
+                        return v.difficulty !== difficulty
+                    }
+
+                    return v.difficulty == difficulty
+                })
+            }
+
+            return !!fights.length
         })
+
+        if (!reports.length) {
+            throw 'there are no combat reports matching your filter.'
+        }
+
+        return reports
     }
 
-    Message (message) {
+    async Message (message) {
         const params = this._getParams(message)
         const args = this._getArguments(params)
         const trigger = this._getTrigger(message)
@@ -663,7 +731,7 @@ class AttendanceModule extends CommandModule {
 
             return this._getReports(120)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
-                .then(this._filterAltRuns.bind(this))
+                .then(this._filterReports.bind(this, args.filter))
                 .then(this._getKillCounts.bind(this, params))
                 .then(this._assembleKillCounts.bind(this))
         }
@@ -675,10 +743,10 @@ class AttendanceModule extends CommandModule {
 
             return this._getReports(args.numberOfRaids)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
-                .then(this._filterAltRuns.bind(this))
+                .then(this._filterReports.bind(this, args.filter))
                 .then(this._collectAttendance.bind(this))
                 .then(this._filterSpecificCharacter.bind(this, args.character))
-                .then(this._assembleAbscenceData.bind(this, args.character))
+                .then(this._assembleAbscenceData.bind(this))
         }
 
         if (trigger === 'att') {
@@ -692,13 +760,13 @@ class AttendanceModule extends CommandModule {
 
             const promise = this._getReports(args.numberOfRaids)
                 .then(this._wcl.fetchCombatReports.bind(this._wcl))
-                .then(this._filterAltRuns.bind(this))
+                .then(this._filterReports.bind(this, args.filter))
                 .then(this._collectAttendance.bind(this))
 
             if (args.character) {
                 return promise
                     .then(this._filterSpecificCharacter.bind(this, args.character))
-                    .then(this._assembleSimpleAttendanceData.bind(this, args.character))
+                    .then(this._assembleSimpleAttendanceData.bind(this))
             }
 
             return promise
