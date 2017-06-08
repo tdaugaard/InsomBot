@@ -53,24 +53,6 @@ class WarcraftLogs {
         return defer.promise
     }
 
-    fetchCombatReportsOld (reports) {
-        const defer = deferred()
-
-        async.mapSeries(
-            reports,
-            this._getCombatReport.bind(this),
-            (err, results) => {
-                if (err) {
-                    return defer.reject(err)
-                }
-
-                defer.resolve(results)
-            }
-        )
-
-        return defer.promise
-    }
-
     _getCombatReport (report, callback) {
         const endpoint = 'https://www.warcraftlogs.com/v1/report/fights/' + report.id
 
