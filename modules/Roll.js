@@ -9,7 +9,6 @@ const numeral = require('numeral')
 const moment = require('moment')
 const sortBy = require('sort-by')
 const Table = require('cli-table2')
-const EmbedResponse = require('./lib/Response/Embed')
 const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 class RollModule extends CommandModule {
@@ -103,13 +102,13 @@ class RollModule extends CommandModule {
     }
 
     _getSortedRaffleRollers (raffle) {
-        let rollers = []
+        const rollers = []
 
         for (const roll of Common.objectIterator(raffle.rolls)) {
             rollers.push(roll)
         }
 
-        rollers.sort(sortBy('dice'))
+        rollers.sort(sortBy('-dice'))
 
         return rollers
     }
@@ -129,7 +128,7 @@ class RollModule extends CommandModule {
             return this.bot.sendChannelMessage(raffle.channel.id, `The raffle for **${raffle.about}** by ${raffle.author.username} is over! Sadly, there were no participants. Such is life.`)
         }
 
-        const winner = rollers.pop()
+        const winner = rollers.shift()
 
         if (this.config.pinAnnounceMsg) {
             const channel = this.bot.discord.channels.get(raffle.channel.id)
