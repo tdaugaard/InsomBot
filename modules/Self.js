@@ -2,7 +2,6 @@
 
 const CommandModule = require('../lib/CommandModule')
 const Common = require('../lib/common')
-const EmbedResponse = require('./lib/Response/Embed')
 const FileEmbedResponse = require('./lib/Response/FileEmbed')
 
 const humanize = require('humanize')
@@ -72,7 +71,7 @@ class SelfModule extends CommandModule {
                 .addField('CPU Time', Common.relativeTime(process.cpuUsage().user / 1000), true)
                 .addField('Modules/Triggers', this.getModules().join(', '))
 
-            return new EmbedResponse(embed)
+            return embed
         }
     }
 }

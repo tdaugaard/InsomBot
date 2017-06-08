@@ -2,7 +2,6 @@
 
 const CommandModule = require('../lib/CommandModule')
 const DMResponse = require('./lib/Response/DirectMessage')
-const EmbedResponse = require('./lib/Response/Embed')
 const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed
@@ -69,7 +68,7 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField('Current Mythic+ Affixes', this._renderAffix(thisAffix))
 
-        return new EmbedResponse(embed)
+        return embed
     }
 
     _getFutureAffixes (weeksAhead) {
@@ -85,7 +84,7 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField(`Mythic+ Affixes ${futureTime}`, this._renderAffix(thisAffix))
 
-        return new EmbedResponse(embed)
+        return embed
     }
 
     _getAffixTable (affixIndex) {
@@ -110,7 +109,7 @@ class MythicAffixModule extends CommandModule {
 
         embed.addField('Mythic+ Affix List Relative to this Reset', affixListString)
 
-        return new EmbedResponse(embed)
+        return embed
     }
 
     _getAffixesDescriptionTable () {

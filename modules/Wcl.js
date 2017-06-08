@@ -7,7 +7,7 @@ const request = require('request')
 const deferred = require('deferred')
 const cachedRequest = require('cached-request')(request)
 const moment = require('moment')
-const EmbedResponse = require('./lib/Response/Embed')
+const RichEmbed = require('discord.js').RichEmbed
 
 class WclModule extends CommandModule {
     constructor (parent, config) {
@@ -52,27 +52,21 @@ class WclModule extends CommandModule {
 
         const reports = await this.getReports()
         const numberOfReports = Common.getIntegerBetween(params[0], {min: 1, max: 10, default: 3})
-        const embed = {
-            title: 'Warcraft Logs Combat Reports',
-            color: 3447003,
-            fields: [],
-            provider: {
-                name: 'WarcraftLogs',
-                url: 'http://warcraftlogs.com/'
-            }
-        }
+        const embed = new RichEmbed({color: 3447003})
+
+        embed
+            .setTitle('Warcraft Logs Combat Reports')
+            .setURL('http://warcraftlogs.com/')
+            .attachFile('https://i.yais.dk/XBshWd.png')
 
         reports.slice(-numberOfReports).forEach(v => {
             const time = moment(v.start).format(this.bot.config.date.human)
             const prefix = v.start >= recentTime ? ':new: ' : ''
 
-            embed.fields.push({
-                name: time,
-                value: `${prefix}[${v.title}](https://www.warcraftlogs.com/reports/${v.id}) (${v.id})`
-            })
+            embed.addField(time, `${prefix}[${v.title}](https://www.warcraftlogs.com/reports/${v.id}) (${v.id})`)
         })
 
-        return new EmbedResponse(embed)
+        return embed
     }
 }
 

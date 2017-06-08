@@ -12,7 +12,6 @@ const os = require('os')
 const mktemp = require('mktemp')
 
 const DMResponse = require('./lib/Response/DirectMessage')
-const EmbedResponse = require('./lib/Response/Embed')
 const FileEmbedResponse = require('./lib/Response/FileEmbed')
 const UnTaggedResponse = require('./lib/Response/UnTagged')
 
@@ -324,7 +323,7 @@ class ManageModule extends CommandModule {
             throw util.inspect(e)
         }
 
-        return new EmbedResponse(embed)
+        return embed
     }
 
     Message (message) {

@@ -61,13 +61,15 @@ class WoWTokenModule extends CommandModule {
                 .addField('Sells Within', data.formatted.timeToSell, true)
                 .addField('Play for Free', `Make about **${goldPerDayToPlayForFree}g** per day.`, true)
 
-                .setImage(data.formatted.sparkurl)
-                .setFooter('http://wowtoken.info/')
-                .setThumbnail('https://wow.zamimg.com/images/wow/icons/large/wow_token01.jpg')
+                .setTitle('World of Warcraft Token')
+                .setURL('http://wowtoken.info/')
+                .attachFile('https://i.yais.dk/sNesCX.png')
 
-            return new EmbedResponse(embed)
+            return embed
         } catch (err) {
-            throw 'I\'m unable to get WoW Token price data at this time: ' + err.code
+            console.err(err)
+
+            throw "I'm unable to get WoW Token price data at this time."
         }
     }
 }

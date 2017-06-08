@@ -11,7 +11,6 @@ const EventEmitter = require('events').EventEmitter
 const storage = require('node-persist')
 
 const DMResponse = require('./modules/lib/Response/DirectMessage')
-const EmbedResponse = require('./modules/lib/Response/Embed')
 const FileEmbedResponse = require('./modules/lib/Response/FileEmbed')
 const UnTaggedResponse = require('./modules/lib/Response/UnTagged')
 
@@ -255,35 +254,38 @@ class DiscordBot extends EventEmitter {
         return this.triggers
     }
 
-    sendChannelMessage (channelId, reply) {
+    async sendChannelMessage (channelId, reply) {
         const channel = this.discord.channels.get(channelId)
-        let promise
+        let msg
 
-        if (reply instanceof EmbedResponse) {
-            promise = channel.sendMessage(reply.content || '', reply.embed)
-        } else {
-            promise = channel.sendMessage(reply)
-        }
+        try {
+            if (reply instanceof RichEmbed) {
+                msg = await channel.send('', {embed: reply})
+            } else {
+                msg = await channel.send(reply)
+            }
 
-        logger.info('Sent message to channel %s', this.getChannelString(channel))
+            logger.info('Sent message to channel %s', this.getChannelString(channel))
 
-        promise.catch(err => {
-            this.emit('end', null)
+            return msg
 
+        } catch (err) {
             logger.error(err)
-        })
-
-        return promise
+        }
     }
 
     sendReply (message, reply) {
         let promise
 
-        if (!reply) {
+        if (typeof reply === "undefined") {
             throw 'the command/query surprisingly had no response.'
         }
 
-        if (util.isString(reply)) {
+        if (!reply) {
+            return
+        }
+
+        if (util.isString(reply) && reply.length) {
             promise = message.reply(reply)
 
             if (message.channel.type === 'text') {
@@ -299,7 +301,7 @@ class DiscordBot extends EventEmitter {
             }
         } else if (util.isObject(reply)) {
             if (reply instanceof FileEmbedResponse) {
-                promise = message.channel.sendFile(reply.file, null, reply.content || '')
+                promise = message.channel.send(reply.content || '', {files: [reply.file]})
 
                 logger.info('Sent message to channel %s initiated by %s',
                     this.getChannelString(message.channel),
@@ -312,21 +314,18 @@ class DiscordBot extends EventEmitter {
                     this.getAuthorString(message.author),
                     this.getChannelString(message.channel)
                 )
-            } else if (reply instanceof EmbedResponse) {
-                promise = message.channel.sendMessage('', {embed: reply.embed})
-
-                logger.info('Sent message to channel %s initiated by %s',
-                    this.getChannelString(message.channel),
-                    this.getAuthorString(message.author)
-                )
-            } else {
-                promise = message.channel.sendMessage(reply.content)
+            } else if (reply instanceof RichEmbed) {
+                promise = message.channel.send('', {embed: reply})
 
                 logger.info('Sent message to channel %s initiated by %s',
                     this.getChannelString(message.channel),
                     this.getAuthorString(message.author)
                 )
             }
+        }
+
+        if (!promise) {
+            return
         }
 
         promise.catch(err => {
