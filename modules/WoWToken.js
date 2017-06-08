@@ -29,7 +29,7 @@ class WoWTokenModule extends CommandModule {
         const response = cachedRequest({
             url: endpoint,
             json: true,
-            ttl: 1800 * 1000,
+            ttl: 900 * 1000,
             time: true
         }, (err, res, body) => {
             Common.logRequestCompletion(logger, endpoint, err, res)

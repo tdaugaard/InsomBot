@@ -37,7 +37,7 @@ class Raffle extends BreakTimer {
 
     addRoll (user, dice) {
         if (this.getRoll(user)) {
-            throw new Error('User already rolled; this shouldn\'t happen.')
+            throw "User already rolled; this shouldn't happen."
         }
 
         this.rolls[user.id] = {
