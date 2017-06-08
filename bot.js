@@ -321,6 +321,13 @@ class DiscordBot extends EventEmitter {
                     this.getChannelString(message.channel),
                     this.getAuthorString(message.author)
                 )
+            } else if (reply instanceof UnTaggedResponse) {
+                promise = message.channel.send(reply.content)
+
+                logger.info('Sent message to channel %s initiated by %s',
+                    this.getChannelString(message.channel),
+                    this.getAuthorString(message.author)
+                )
             }
         }
 
