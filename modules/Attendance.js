@@ -17,6 +17,7 @@ const RaidAttendance = require('./lib/RaidAttendance')
 const WarcraftLogs = require('./lib/WarcraftLogs')
 const BossNameMatcher = require('./lib/BossNameMatcher')
 const UnTaggedResponse = require('./lib/Response/UnTagged')
+const intersect = require('array-intersection')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -110,6 +111,11 @@ class AttendanceModule extends CommandModule {
                 .filter(v => v.boss !== 0)
                 .map(v => v.id)
 
+            if (!fightIds.length) {
+                logger.debug("Combat report %s does not have fights after filtering.", report.id)
+                continue
+            }
+
             attendance.fights += fightIds.length
             attendance.raids.push({
                 id: report.id,
@@ -149,7 +155,7 @@ class AttendanceModule extends CommandModule {
                     }
 
                     player.lastAttendance = report.start
-                    player.fights.num += v.fights.filter(v => !fightIds.includes(v.id)).length
+                    player.fights.num += intersect(v.fights.map(v => v.id), fightIds).length
                 })
         }
 
