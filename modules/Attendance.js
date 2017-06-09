@@ -169,12 +169,11 @@ class AttendanceModule extends CommandModule {
         const names = characters.map(v => v.toLowerCase())
 
         for (const player of Common.objectIterator(attendance.players)) {
-            let playerName = player.name.toLowerCase()
+            const playerName = player.name.toLowerCase()
+            const namesMatching = names.filter(v => playerName.indexOf(v) === 0)
 
-            for (const name of names) {
-                if (player.name.toLowerCase().indexOf(name) === 0) {
-                    players.push(player)
-                }
+            if (namesMatching.length) {
+                players.push(player)
             }
         }
 
@@ -207,12 +206,12 @@ class AttendanceModule extends CommandModule {
             fights: 0
         }
 
-        attendance.raids.forEach(raid => {
-            if (raid.start >= player.firstAttendance) {
+        attendance.raids
+            .filter(v => v.start >= player.firstAttendance)
+            .forEach(raid => {
                 possibleReports.raids.push(raid.id)
                 possibleReports.fights += raid.fights
-            }
-        })
+            })
 
         return possibleReports
     }
