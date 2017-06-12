@@ -18,6 +18,11 @@
         "TestModule": {
             "blacklisted": true
         },
+        "Promote": {
+            "roles": [
+                "Officer"
+            ],
+        },
         "Roll": {
             "enabled": true,
             "roles": [],
