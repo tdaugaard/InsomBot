@@ -65,10 +65,9 @@ class ManageModule extends CommandModule {
                 ]
             })
 
+        // Enforce module available to server owner unless otherwise given roles as well
         this.config = Object.assign(this.config || {}, {
-            'roles': [
-                'Great Leader'
-            ]
+            'owner': true
         })
     }
 

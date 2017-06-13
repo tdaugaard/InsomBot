@@ -375,18 +375,19 @@ class DiscordBot extends EventEmitter {
             return
         }
 
-        const permission = module.allowed(message.member)
-        const logLevel = permission ? 'info' : 'warn'
+        const permission = module.allowed(message)
+        const logLevel = permission.check ? 'info' : 'warn'
 
-        logger[logLevel]("%s: %s%s requested '%s' (%s)",
-            permission ? 'Accepted'.green.bold : 'Denied'.red.bold,
+        logger[logLevel]("%s: (%s) %s%s requested '%s' (%s)",
+            permission.check ? 'Accepted'.green.bold : 'Denied'.red.bold,
+            permission.why,
             this.getAuthorString(message.member.user),
             message.member.nickname ? ' (' + message.member.nickname + ')' : '',
             colors.cyan(module.getName()),
             colors.yellow(message.content)
         )
 
-        if (!permission) {
+        if (!permission.check) {
             throw 'Access denied.'
         }
 
