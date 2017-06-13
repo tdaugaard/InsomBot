@@ -3,6 +3,7 @@
 const CommandModule = require('../lib/CommandModule')
 const Common = require('../lib/common')
 const FileEmbedResponse = require('./lib/Response/FileEmbed')
+const UnTaggedResponse = require('./lib/Response/UnTagged')
 
 const humanize = require('humanize')
 const RichEmbed = require('discord.js').RichEmbed
@@ -55,7 +56,7 @@ class SelfModule extends CommandModule {
         }
 
         if (trigger === 'good') {
-            return '👌👀👌👀👌👀👌👀👌👀 good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌th 👌 ere👌👌👌 right✔there ✔✔if i do ƽaү so my selｆ 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit'
+            return new UnTaggedResponse('👌👀👌👀👌👀👌👀👌👀 good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌th 👌 ere👌👌👌 right✔there ✔✔if i do ƽaү so my selｆ 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit')
         }
 
         if (trigger === 'self') {

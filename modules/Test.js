@@ -17,13 +17,14 @@ class TestModule extends CommandModule {
         })
     }
 
-    _getProgressBar(percentage) {
+    _getProgressBar(percentage, display) {
         const fillLen = Math.ceil((this._totalLength * percentage) / 100)
         const blankLen = this._totalLength - (isFinite(fillLen) ? fillLen : 0)
+        display = display || (percentage + '%')
 
         return   (fillLen  > 0 ? '▓'.repeat(fillLen) : '')
                + (blankLen > 0 ? '░'.repeat(blankLen) : '')
-               + ' ' + percentage + '%'
+               + ' ' + display
     }
 
     async _updateMessage(msg, percentage,) {
@@ -34,7 +35,7 @@ class TestModule extends CommandModule {
         }
 
         try {
-            msg = await msg.edit(this._getProgressBar(percentage))
+            msg = await msg.edit(this._getProgressBar(percentage, percentage >= 99 ? 'REKT' : null))
 
             if (percentage < 99) {
                 setTimeout(this._updateMessage.bind(this, msg, percentage), 1000)
