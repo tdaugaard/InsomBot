@@ -21,10 +21,10 @@ class HelpModule extends CommandModule {
 
     _getAllowedModules (msg) {
         const modules = this.bot.getModules()
-        return Object.keys(modules).filter(v => modules[v].enabled && modules[v].allowed(msg.member))
+        return Object.keys(modules).filter(v => modules[v].enabled && modules[v].allowed(msg).check)
     }
 
-    _getSimpleHelp (modulesAllowed, msg) {
+    _getSimpleHelp (modulesAllowed) {
         const result = []
         let moduleHeader
 
@@ -69,6 +69,9 @@ class HelpModule extends CommandModule {
         let moduleHeader = '**' + moduleName + '**'
         let result = ''
 
+        if (module.owner) {
+            moduleHeader += ` (Only _Owner_)`
+        } else
         if (module.roles.length) {
             moduleHeader += ` (Only _${module.roles.join('_, _')}_)`
         }
