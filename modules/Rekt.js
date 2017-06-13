@@ -22,9 +22,12 @@ class RektModule extends CommandModule {
         let str = '\n'
 
         if (params.length >= 1) {
-            howManyRekts = parseInt(params[0]) - 1
+            howManyRekts = parseInt(params[0], 10) - 1
             if (howManyRekts > 10) {
                 howManyRekts = 10
+            }
+            else if (!isFinite(howManyRekts) || howManyRekts < 1) {
+                throw "don't be a fucking smartass."
             }
         }
 
