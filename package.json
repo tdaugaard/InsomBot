@@ -23,6 +23,7 @@
     "dot-object": "^1.5.4",
     "feedparser": "^1.1.5",
     "humanize": "0.0.9",
+    "mathjs": "^3.13.3",
     "median": "0.0.2",
     "mktemp": "^0.4.0",
     "moment": "^2.17.0",
