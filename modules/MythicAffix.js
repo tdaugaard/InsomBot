@@ -1,11 +1,19 @@
 'use strict'
 
+const logger = require('../lib/logger')
+const Common = require('../lib/common')
 const CommandModule = require('../lib/CommandModule')
 const DMResponse = require('./lib/Response/DirectMessage')
 const pad = require('pad')
 const Affixes = require('./data/affixes.json')
 const RichEmbed = require('discord.js').RichEmbed
 const moment = require('moment')
+const cheerio = require('cheerio')
+const deferred = require('deferred')
+const request = require('request')
+const cachedRequest = require('cached-request')(request)
+const util = require('util')
+const cachedRequestAsync = util.promisify(cachedRequest)
 
 class MythicAffixModule extends CommandModule {
     constructor (parent, config) {
@@ -16,6 +24,41 @@ class MythicAffixModule extends CommandModule {
             'params': [
                 'weeks ahead = 0'
             ]
+        })
+    }
+
+    async _loadAffixes() {
+        const defer = deferred()
+        const url = 'https://mythicpl.us/'
+        let res
+
+        try {
+            res = await cachedRequestAsync({url: url, ttl: 10800, time: true})
+
+            Common.logRequestCompletion(logger, url, null, res)
+
+        } catch (err) {
+            Common.logRequestCompletion(logger, url, err, null)
+            return
+        }
+
+        return this._parseMythicPlusAffixes(res.body)
+    }
+
+    async _parseMythicPlusAffixes(body) {
+        const $ = cheerio.load(body)
+
+        Affixes.pairs = []
+
+        $('table#sched > tbody > tr').each(function() {
+            const affixGroup = $(this)
+                .find('td')
+                .map(function() {
+                    return $(this).text()
+                })
+                .get()
+
+            Affixes.pairs.push(affixGroup)
         })
     }
 
@@ -118,8 +161,9 @@ class MythicAffixModule extends CommandModule {
         return new DMResponse("Here's the complete list of Mythic+ affixes and their short descriptions.\n\n" + affixDescriptions)
     }
 
-    Message (message) {
+    async Message (message) {
         const params = this._getParams(message)
+        const affixes = await this._loadAffixes()
 
         if (params.length) {
             switch (params[0]) {
