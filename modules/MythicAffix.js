@@ -62,37 +62,18 @@ class MythicAffixModule extends CommandModule {
         })
     }
 
-    _findCurrentAffix () {
-        return this._getAffix(this._findCurentAffixIndex())
+    _getAffix (indexStart) {
+        const affixIndex = this._findAffix(indexStart)
+
+        return Affixes.pairs[affixIndex]
     }
 
-    _findFutureAffix (howMany) {
-        let currentAffix = this._findCurentAffixIndex()
-        howMany = parseInt(howMany, 10)
-
-        if (currentAffix + howMany >= Affixes.pairs.length) {
-            howMany -= Math.floor((currentAffix + howMany) / Affixes.pairs.length) * Affixes.pairs.length
-        }
-
-        return this._getAffix(currentAffix + howMany)
-    }
-
-    _findCurentAffixIndex () {
+    _findAffix (indexStart) {
+        indexStart = indexStart ? parseInt(indexStart, 10) : 0
         const date = moment(Affixes.start.date)
-        let affixIndex = Affixes.start.pair
+        const diffWeeks = indexStart + Math.ceil(moment().diff(date, 'days') / 7)
 
-        do {
-            ++affixIndex
-            if (affixIndex === Affixes.pairs.length) {
-                affixIndex = 0
-            }
-        } while (date.add(7, 'days').isBefore())
-
-        return affixIndex
-    }
-
-    _getAffix (index) {
-        return Affixes.pairs[index]
+        return (diffWeeks % Affixes.pairs.length + Affixes.pairs.length) % Affixes.pairs.length
     }
 
     _renderAffix (affixPairs) {
@@ -106,7 +87,7 @@ class MythicAffixModule extends CommandModule {
     }
 
     _getCurrentAffixes () {
-        const thisAffix = this._findCurrentAffix()
+        const thisAffix = this._getAffix()
         const embed = new RichEmbed({color: 3447003})
 
         embed.addField('Current Mythic+ Affixes', this._renderAffix(thisAffix))
@@ -121,7 +102,7 @@ class MythicAffixModule extends CommandModule {
             throw 'please give a non-negative number.'
         }
 
-        const thisAffix = this._findFutureAffix(weeksAhead)
+        const thisAffix = this._getAffix(weeksAhead)
         const embed = new RichEmbed({color: 3447003})
         const futureTime = weeksAhead === 1 ? 'next reset' : `in ${weeksAhead} resets`
 
@@ -131,7 +112,7 @@ class MythicAffixModule extends CommandModule {
     }
 
     _getAffixTable (affixIndex) {
-        const thisAffixIndex = affixIndex || this._findCurentAffixIndex()
+        const thisAffixIndex = affixIndex || this._findAffix()
         const embed = new RichEmbed({color: 3447003})
         const longestAffixName = Affixes.pairs.reduce((carry, v) => {
             const len = v.reduce((ncarry, nv) => nv.length > ncarry ? nv.length : ncarry, 0)
@@ -145,9 +126,11 @@ class MythicAffixModule extends CommandModule {
         let affixListString = ''
 
         for (let index = 0; index < affixList.length; index++) {
-            affixListString += '`' + (index === 0 ? 'current : ' : `+${index} reset: `)
+            const resetNo = '+' + pad(2, '' + index)
+            affixListString += '`' + (index === 0 ? 'current  : ' : `${resetNo} reset: `)
             affixListString += affixList[index].map(v => pad(v, longestAffixName)).join(' - ')
-            affixListString += '`\n'
+            affixListString += '`'
+            affixListString += '\n'
         }
 
         embed.addField('Mythic+ Affix List Relative to this Reset', affixListString)
