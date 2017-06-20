@@ -1,7 +1,6 @@
 {
     "start": {
-        "date": "2017-05-01",
-        "pair": 4
+        "date": "2017-04-04"
     },
     "pairs": [
         ["Raging", "Volcanic", "Tyrannical"],
@@ -14,7 +13,8 @@
         ["Bolstering", "Skittish", "Fortified"],
         ["Teeming", "Necrotic", "Tyrannical"],
         ["Sanguine", "Grevious", "Fortified"],
-		["Bolstering", "Explosive", "Tyrannical"]
+        ["Bolstering", "Explosive", "Tyrannical"],
+        ["Bursting", "Quaking", "Fortified"]
     ],
     "desc": {
         "Bolstering": "When any non-boss enemy dies, its death cry empowers nearby allies, increasing their maximum health and damage by 20%.",
