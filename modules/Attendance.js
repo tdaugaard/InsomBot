@@ -58,6 +58,9 @@ class AttendanceModule extends CommandModule {
                 'main_name'
             ]
         })
+        this.addTrigger('!alts', {
+            'short': 'View the mapping of alts to mains'
+        })
 
         this.altsToMains = this._makeMainsToAltMapping(this.config.sameNameMapping)
         this._wcl = new WarcraftLogs(cachedRequest, {
@@ -388,11 +391,11 @@ class AttendanceModule extends CommandModule {
             this.config.sameNameMapping = this._makeAltToMainsMapping(this.altsToMains)
             this.bot.updateConfig()
 
-            return `okay, '${alt}' is unmapped.`
+            return `okay, **${alt}** is unmapped.`
         }
 
         if (this.altsToMains.hasOwnProperty(alt)) {
-            throw `'${alt}' is already mapped to '${this.altsToMains[alt]}'`
+            throw `**${alt}** is already mapped to **${this.altsToMains[alt]}**`
         }
 
         if (this.config.sameNameMapping.hasOwnProperty(main)) {
@@ -403,7 +406,19 @@ class AttendanceModule extends CommandModule {
 
         this.altsToMains = this._makeMainsToAltMapping(this.config.sameNameMapping)
 
-        return `okay, '${alt}' is now mapped to '${main}'.`
+        return `okay, **${alt}** is now mapped to **${main}**.`
+    }
+
+    _viewAlts () {
+        let str = ""
+
+        for (const main of Object.keys(this.config.sameNameMapping)) {
+            let singularOrPlural = this.config.sameNameMapping[main].length > 1 ? 'these alts' : 'this alt'
+
+            str += `**${main}** is mapped to ${singularOrPlural}: _${this.config.sameNameMapping[main].join('_, _')}_\n`
+        }
+
+        return new UnTaggedResponse(str)
     }
 
     _getArguments (params) {
@@ -477,11 +492,12 @@ class AttendanceModule extends CommandModule {
 
         for (const player of attendance.players) {
             let lastAttendanceMoment = moment(player.lastAttendance)
+            let firstAttendanceMoment = moment(player.firstAttendance)
             let activeOrInactive = lastAttendanceMoment.isBefore(notBefore) ? " (_inactive_)" : ""
 
             out += `**${player.name}**${activeOrInactive} has attended **${player.raids.num}** of **${player.raids.possible}** `
             out += `(**${Math.round(player.raids.pct)}%**) possible raids of the past **${attendance.raids.length}** raids. `
-            out += `Last attendance: ${lastAttendanceMoment.format(this.bot.config.date.human)}\n`
+            out += `First & Last attendance: ${firstAttendanceMoment.format(this.bot.config.date.human)} - ${lastAttendanceMoment.format(this.bot.config.date.human)}\n`
         }
 
         return new UnTaggedResponse(out)
@@ -721,6 +737,10 @@ class AttendanceModule extends CommandModule {
 
         if (trigger === 'alt') {
             return this._manageAlts(params)
+        }
+
+        if (trigger === 'alts') {
+            return this._viewAlts()
         }
 
         if (trigger === 'kills') {

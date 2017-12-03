@@ -18,6 +18,10 @@
         "TestModule": {
             "blacklisted": true
         },
+        "Help": {
+            "enabled": true,
+            "sendAsDM": true
+        },
         "Roll": {
             "enabled": true,
             "roles": [],

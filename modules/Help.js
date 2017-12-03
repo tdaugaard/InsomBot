@@ -2,6 +2,7 @@
 
 const CommandModule = require('../lib/CommandModule')
 const escapeMarkdown = require('discord.js').escapeMarkdown
+const DirectMessageResponse = require('./lib/Response/DirectMessage')
 
 class HelpModule extends CommandModule {
     constructor (parent, config) {
@@ -48,8 +49,14 @@ class HelpModule extends CommandModule {
             return "sadly I can't do much for you."
         }
 
-        return 'here\'s what I can do for you:\n\n' + result.join('\n') +
-               '\n\nType `!help <module>` to get more detailed help.'
+        const str = 'what I can do for you:\n\n' + result.join('\n') +
+               '\n\nType `!help <module>` to get more detailed help.';
+
+        if (this.config.sendAsDM) {
+            return new DirectMessageResponse("Here's " + str)
+        }
+
+        return "here's " + str
     }
 
     _getModuleHelp (modulesAllowed, msg, params) {
@@ -98,11 +105,15 @@ class HelpModule extends CommandModule {
 
         let str = ''
 
-        str += 'regarding ' + moduleHeader + ", here's how it works:\n\n"
+        str += moduleHeader + ", here's how it works:\n\n"
         str += result
         str += module.getHelp()
 
-        return str
+        if (this.config.sendAsDM) {
+            return new DirectMessageResponse("Regarding " + str)
+        }
+
+        return "regarding " + str
     }
 
     Message (message) {
