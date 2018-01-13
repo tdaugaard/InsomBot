@@ -111,6 +111,8 @@ discordjs
         }
     })
 
+    .on('error', exitHandler)
+
     .on('disconnected', function () {
         logger.error('Disconnected.')
         process.exit(1)
