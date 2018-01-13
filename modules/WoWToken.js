@@ -24,7 +24,7 @@ class WoWTokenModule extends CommandModule {
 
     getHistory () {
         const defer = deferred()
-        const endpoint = 'https://wowtoken.info/wowtoken.json'
+        const endpoint = 'https://data.wowtoken.info/snapshot.json'
 
         const response = cachedRequest({
             url: endpoint,
@@ -49,7 +49,7 @@ class WoWTokenModule extends CommandModule {
             const history = await this.getHistory()
 
             const region = this.bot.config.guild.region.toUpperCase()
-            const data = history.update[region]
+            const data = history[region]
             const goldPerDayToPlayForFree = numeral(data.raw.buy / 30).format('0,0')
             const embed = new RichEmbed({color: 3447003})
 
