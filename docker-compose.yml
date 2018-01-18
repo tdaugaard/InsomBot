@@ -1,0 +1,12 @@
+version: '3.4'
+services:
+
+  node:
+    image: node:carbon
+    container_name: jwibot
+    volumes:
+      - .:/usr/src/app/
+    entrypoint: /bin/sh /usr/src/app/entrypoint.sh
+
+volumes:
+  .:
