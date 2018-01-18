@@ -9,7 +9,7 @@ services:
       - data:/mnt/jwibot
     tmpfs:
       - /tmp/jwibot
-    entrypoint: /bin/sh /usr/src/app/entrypoint.sh
+    command: ["/usr/src/app/entrypoint.sh"]
 
 volumes:
   .:
