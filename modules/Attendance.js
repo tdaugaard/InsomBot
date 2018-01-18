@@ -415,7 +415,7 @@ class AttendanceModule extends CommandModule {
         for (const main of Object.keys(this.config.sameNameMapping)) {
             let singularOrPlural = this.config.sameNameMapping[main].length > 1 ? 'these alts' : 'this alt'
 
-            str += `**${main}** is mapped to ${singularOrPlural}: _${this.config.sameNameMapping[main].join('_, _')}_\n`
+            str += `**${main}** has ${singularOrPlural} mapped: _${this.config.sameNameMapping[main].join('_, _')}_\n`
         }
 
         return new UnTaggedResponse(str)
