@@ -1,9 +1,0 @@
-{
-  "apps": [
-    {
-      "name": "Discord Bot",
-      "script": "index.js",
-      "args": "--color"
-    }
-  ]
-}
