@@ -1,12 +1,16 @@
 version: '3.4'
 services:
 
-  node:
+  bot:
     image: node:carbon
     container_name: jwibot
     volumes:
-      - .:/usr/src/app/
+      - .:/usr/src/app/:ro
+      - data:/mnt/jwibot
+    tmpfs:
+      - /tmp/jwibot
     entrypoint: /bin/sh /usr/src/app/entrypoint.sh
 
 volumes:
   .:
+  data:
