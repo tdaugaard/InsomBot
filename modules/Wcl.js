@@ -7,6 +7,7 @@ const request = require('request')
 const deferred = require('deferred')
 const cachedRequest = require('cached-request')(request)
 const moment = require('moment')
+const UntaggedResponse = require('./lib/Response/UnTagged');
 const RichEmbed = require('discord.js').RichEmbed
 
 class WclModule extends CommandModule {
@@ -16,7 +17,7 @@ class WclModule extends CommandModule {
         this.addTrigger('!wcl', {
             'short': 'Display latest Warcraft Logs reports',
             'params': [
-                'num_reports = 3'
+                'num_reports = 1'
             ]
         })
 
@@ -51,22 +52,30 @@ class WclModule extends CommandModule {
         const recentTime = moment().subtract(3, 'days').valueOf()
 
         const reports = await this.getReports()
-        const numberOfReports = Common.getIntegerBetween(params[0], {min: 1, max: 10, default: 3})
-        const embed = new RichEmbed({color: 3447003})
+        const numberOfReports = Common.getIntegerBetween(params[0], {min: 1, max: 10, default: 1})
 
-        embed
-            .setTitle('Warcraft Logs Combat Reports')
-            .setURL('http://warcraftlogs.com/')
-            .attachFile('https://i.yais.dk/XBshWd.png')
+        if (numberOfReports > 1) {
+            const embed = new RichEmbed({color: 3447003})
 
-        reports.slice(-numberOfReports).forEach(v => {
-            const time = moment(v.start).format(this.bot.config.date.human)
-            const prefix = v.start >= recentTime ? ':new: ' : ''
+            embed
+                .setTitle('Warcraft Logs Combat Reports')
+                .setURL('http://warcraftlogs.com/')
+                .attachFile('https://i.yais.dk/XBshWd.png')
 
-            embed.addField(time, `${prefix}[${v.title}](https://www.warcraftlogs.com/reports/${v.id}) (${v.id})`)
-        })
+            reports.slice(-numberOfReports).forEach(v => {
+                const time = moment(v.start).format(this.bot.config.date.human)
+                const prefix = v.start >= recentTime ? ':new: ' : ''
 
-        return embed
+                embed.addField(time, `${prefix}[${v.title}](https://www.warcraftlogs.com/reports/${v.id}) (${v.id})`)
+            })
+
+            return embed
+        }
+
+        const report = reports.pop();
+        const time = moment(report.start).format(this.bot.config.date.human);
+
+        return new UntaggedResponse(`${time}: **${report.title}** (https://www.warcraftlogs.com/reports/${report.id})`);
     }
 }
 
