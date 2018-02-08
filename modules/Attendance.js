@@ -18,6 +18,7 @@ const WarcraftLogs = require('./lib/WarcraftLogs')
 const BossNameMatcher = require('./lib/BossNameMatcher')
 const UnTaggedResponse = require('./lib/Response/UnTagged')
 const intersect = require('array-intersection')
+const BlizzardApi = require('./lib/BlizzardApi')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -61,6 +62,9 @@ class AttendanceModule extends CommandModule {
         this.addTrigger('!alts', {
             'short': 'View the mapping of alts to mains'
         })
+        this.addTrigger('!trials', {
+            short: 'View a list of trial players'
+        });
 
         this.altsToMains = this._makeMainsToAltMapping(this.config.sameNameMapping)
         this._wcl = new WarcraftLogs(cachedRequest, {
@@ -69,6 +73,13 @@ class AttendanceModule extends CommandModule {
             region: this.bot.config.guild.region,
             apiKey: this.bot.config.guild.api.wcl
         })
+
+        this._blizzardApi = new BlizzardApi(cachedRequest, {
+            guild: this.bot.config.guild.name,
+            realm: this.bot.config.guild.realm,
+            region: this.bot.config.guild.region,
+            apiKey: this.bot.config.guild.api.blizzard
+        });
 
         cachedRequest.setCacheDirectory(this.bot.config.cacheDirectory)
     }
@@ -341,6 +352,54 @@ class AttendanceModule extends CommandModule {
         if (attendedOnAlts.length) {
             out += '\n_' + attendedOnAlts.join('_, _') + '_ also attended on alts, which _has_ been taken into account.'
         }
+
+        return new UnTaggedResponse(out)
+    }
+
+    _assembleTrialAttendanceData (attendance) {
+        const table = new Table({
+            head: ['Character', 'Raids', 'Fights'],
+            chars: { 'top': '', 'top-mid': '', 'top-left': '', 'top-right': '', 'bottom': '', 'bottom-mid': '', 'bottom-left': '', 'bottom-right': '', 'left': '', 'left-mid': '', 'mid': '─', 'mid-mid': '┼', 'right': '', 'right-mid': '', 'middle': '|' },
+            colAligns: ['left', 'right', 'right'],
+            style: {
+                head: [],
+                border: [],
+                compact: true
+            }
+        })
+        let players = []
+        let out = ''
+        let plusThisManyMore = 0
+
+        for (const player of Common.objectIterator(attendance.players)) {
+            players.push(player)
+        }
+
+        const numberOfActivePlayers = players.length
+
+        players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
+        if (players.length > 30) {
+            plusThisManyMore = players.length - 25
+            players = players.slice(0, 25)
+        }
+
+        players.forEach(v => {
+            table.push([
+                v.name,
+                v.raids.num + ' of ' + pad(3, v.raids.possible) + ' (' + pad(4, Math.round(v.raids.pct) + '%') + ')',
+                numeral(v.fights.num).format('0,0') + ' (' + pad(4, Math.round(v.fights.pct) + '%') + ')'
+            ])
+        })
+
+        out += `${numberOfActivePlayers} trial players' attendance of the past **${attendance.raids.length}** raids (_${numeral(attendance.fights).format('0,0')} fights_)\n`
+        out += '```\n'
+        out += table.toString() + '\n'
+
+        if (plusThisManyMore > 0) {
+            out += ' … and ' + plusThisManyMore + ' more not shown.'
+        }
+
+        out += '\n```'
 
         return new UnTaggedResponse(out)
     }
@@ -791,6 +850,25 @@ class AttendanceModule extends CommandModule {
             return promise
                 .then(this._filterInactiveMembers.bind(this))
                 .then(this._assembleAttendanceData.bind(this))
+        }
+
+        if (trigger === 'trials') {
+            return this._blizzardApi.getGuildMembers()
+                .then(members => {
+                    return members.filter(v => {
+                        return v.character.level === 110 && v.rank === this.config.trialRank;
+                    });
+                })
+                .then(members => {
+                    args.character = members.map(v => v.character.name);
+
+                    return this._getReports(args.numberOfRaids)
+                        .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                        .then(this._filterReports.bind(this, args.filter))
+                        .then(this._collectAttendance.bind(this))
+                        .then(this._filterSpecificCharacter.bind(this, args.character))
+                        .then(this._assembleTrialAttendanceData.bind(this));
+                })
         }
     }
 }
