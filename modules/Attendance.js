@@ -93,8 +93,6 @@ class AttendanceModule extends CommandModule {
             this._checkTrialsSchedule = schedule.scheduleJob(rule, this._checkTrials.bind(this));
             this._logNextTrialCheck();
         }
-
-        setTimeout(this._checkTrials.bind(this), 5000)
     }
 
     _logNextTrialCheck () {
@@ -111,6 +109,8 @@ class AttendanceModule extends CommandModule {
     }
 
     _checkTrials () {
+        this._logNextTrialCheck();
+
         this._blizzardApi.getGuildMembers()
             .then(members => {
                 return members.filter(v => {
