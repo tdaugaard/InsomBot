@@ -39,7 +39,8 @@ class DiscordBot extends EventEmitter {
 
         this.on('ready', () => {
             if (this.discord) {
-                this.discord.user.setGame('node.js ' + process.version + ' on ' + os.type())
+                this._setActivity();
+                this._setAvatar();
             }
         })
 
@@ -52,6 +53,32 @@ class DiscordBot extends EventEmitter {
                 module.destructor()
             }
         }
+    }
+
+    _setActivity () {
+        this.discord.user.setActivity('node.js ' + process.version + ' on ' + os.type())
+    }
+
+    _setAvatar () {
+        const avatar = 'avatar.png';
+
+        fs.stat(avatar, (err, stat) => {
+            if (err) {
+                logger.error(err)
+                return
+            }
+
+            if (stat.size > 10 * 1024 * 1024) {
+                logger.error(avatar + ' cannot exceed 10 MiB');
+                return;
+            }
+
+            this.discord.user.setAvatar(avatar)
+                .then(user => {
+                    logger.info('Discord Avatar set.');
+                })
+                .catch(logger.error);
+        });
     }
 
     _loadModules () {
