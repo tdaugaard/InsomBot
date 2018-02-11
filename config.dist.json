@@ -34,8 +34,12 @@
             "roles": [
                 "Officer"
             ],
-            "trialRank": 5,
-            "trialRaids": 4,
+            "trials": {
+                "rank": 5,
+                "raids": 4,
+                "raidDays": [1, 3],
+                "announce_channel": ""
+            },
             "filterInactive": 30,
             "matchAltRuns": "\\[Alts\\]$",
             "defaultNumRaids": 12

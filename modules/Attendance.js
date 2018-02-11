@@ -19,6 +19,7 @@ const BossNameMatcher = require('./lib/BossNameMatcher')
 const UnTaggedResponse = require('./lib/Response/UnTagged')
 const intersect = require('array-intersection')
 const BlizzardApi = require('./lib/BlizzardApi')
+const schedule = require('node-schedule');
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -82,6 +83,58 @@ class AttendanceModule extends CommandModule {
         });
 
         cachedRequest.setCacheDirectory(this.bot.config.cacheDirectory)
+
+        if (this.config.trials && this.config.trials.raidDays) {
+            const rule = new schedule.RecurrenceRule();
+            rule.dayOfWeek = this.config.trials.raidDays;
+            rule.hour = 0;
+            rule.minute = 0;
+
+            this._checkTrialsSchedule = schedule.scheduleJob(rule, this._checkTrials.bind(this));
+            this._logNextTrialCheck();
+        }
+
+        setTimeout(this._checkTrials.bind(this), 5000)
+    }
+
+    _logNextTrialCheck () {
+        if (!this._checkTrialsSchedule) {
+            return;
+        }
+
+        logger.info('Next trials check: ' + this._getNextTrialCheck());
+    }
+
+    _getNextTrialCheck () {
+        const nextInvocation = this._checkTrialsSchedule.nextInvocation();
+        return moment(nextInvocation).format(this.bot.config.date.human);
+    }
+
+    _checkTrials () {
+        this._blizzardApi.getGuildMembers()
+            .then(members => {
+                return members.filter(v => {
+                    return v.character.level === 110 && v.rank === this.config.trials.rank;
+                });
+            })
+            .then(members => {
+                const numReports = this.config.trials.raidDays.length * 10;
+                const characterNames = members.map(v => v.character.name);
+
+                return this._getReports(numReports)
+                    .then(this._wcl.fetchCombatReports.bind(this._wcl))
+                    .then(this._filterReports.bind(this, {}))
+                    .then(this._collectAttendance.bind(this))
+                    .then(this._filterSpecificCharacter.bind(this, characterNames))
+                    .then(this._assembleTrialAttendanceData.bind(this));
+            })
+            .then(msg => {
+                let text = msg.content + '\nNext check: ' + this._getNextTrialCheck();
+
+                this.bot.sendChannelMessage(this.config.trials.announce_channel, text);
+            })
+            .catch(err => {
+            })
     }
 
     _makeMainsToAltMapping (mapping) {
@@ -369,19 +422,18 @@ class AttendanceModule extends CommandModule {
         })
         let players = []
         let out = ''
-        let plusThisManyMore = 0
 
         for (const player of Common.objectIterator(attendance.players)) {
             players.push(player)
         }
 
+        if (!players.length) {
+            throw 'No trial players.';
+        }
+
         const numberOfActivePlayers = players.length
 
         players.sort(sortBy('-raids.pct', '-raids.num', '-fights.pct', '-fights.num'))
-        if (players.length > 30) {
-            plusThisManyMore = players.length - 25
-            players = players.slice(0, 25)
-        }
 
         players.forEach(v => {
             table.push([
@@ -394,11 +446,6 @@ class AttendanceModule extends CommandModule {
         out += `${numberOfActivePlayers} trial players' attendance of the past **${attendance.raids.length}** raids (_${numeral(attendance.fights).format('0,0')} fights_)\n`
         out += '```\n'
         out += table.toString() + '\n'
-
-        if (plusThisManyMore > 0) {
-            out += ' … and ' + plusThisManyMore + ' more not shown.'
-        }
-
         out += '\n```'
 
         return new UnTaggedResponse(out)
@@ -856,7 +903,7 @@ class AttendanceModule extends CommandModule {
             return this._blizzardApi.getGuildMembers()
                 .then(members => {
                     return members.filter(v => {
-                        return v.character.level === 110 && v.rank === this.config.trialRank;
+                        return v.character.level === 110 && v.rank === this.config.trial.rank;
                     });
                 })
                 .then(members => {
