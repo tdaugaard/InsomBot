@@ -25,10 +25,12 @@ class WarcraftLogs {
         }, (err, res, reports) => {
             Common.logRequestCompletion(logger, endpoint, err, res)
 
-            if (!err && res.statusCode === 200) {
-                defer.resolve(reports)
-            } else {
+            if (err) {
                 defer.reject(err)
+            } else if (typeof reports !== 'object') {
+                defer.reject('Warcraft Logs is quite possibly down for maintenance as they did not return a valid response.')
+            } else if (res.statusCode === 200) {
+                defer.resolve(reports)
             }
         })
 
