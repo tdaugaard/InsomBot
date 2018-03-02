@@ -20,6 +20,7 @@ const UnTaggedResponse = require('./lib/Response/UnTagged')
 const intersect = require('array-intersection')
 const BlizzardApi = require('./lib/BlizzardApi')
 const schedule = require('node-schedule');
+const async = require('async')
 
 class AttendanceModule extends CommandModule {
     constructor (parent, config) {
@@ -49,8 +50,7 @@ class AttendanceModule extends CommandModule {
         this.addTrigger('!kills', {
             'short': 'Collect and display information kills and wipes from Warcraft Logs',
             'params': [
-                'boss (optional)',
-                'raids = 120'
+                'boss (optional)'
             ]
         })
         this.addTrigger('!alt', {
@@ -669,10 +669,13 @@ class AttendanceModule extends CommandModule {
         let bossFightsFound = 0
 
         for (const report of reports) {
+            let hadBossFights = false
             for (const fight of report.fights) {
                 if (fight.boss === 0 || !bossMatcher.match(fight.name)) {
                     continue
                 }
+
+                hadBossFights = true
                 ++bossFightsFound
 
                 const difficulty = difficulties[fight.difficulty]
@@ -707,14 +710,66 @@ class AttendanceModule extends CommandModule {
         return bosses
     }
 
-    _assembleKillCounts (bosses) {
-        let str = ''
+    _getKillCountEx (bossNames, current, report) {
+        const bossMatcher = new BossNameMatcher(bossNames)
+        const bosses = Object.assign({}, current)
+        const difficulties = {
+            3: 'Normal',
+            4: 'Heroic',
+            5: 'Mythic'
+        }
+        let hadMatchingBossFights = false
 
-        for (const boss of Object.keys(bosses)) {
+        for (const fight of report.fights) {
+            if (fight.boss === 0 || !bossMatcher.match(fight.name)) {
+                continue
+            }
+
+            hadMatchingBossFights = true
+
+            const difficulty = difficulties[fight.difficulty]
+
+            if (!bosses.hasOwnProperty(fight.name)) {
+                bosses[fight.name] = {}
+            }
+            if (!bosses[fight.name].hasOwnProperty(difficulty)) {
+                bosses[fight.name][difficulty] = {
+                    'firstKill': 0,
+                    'kills': 0,
+                    'wipes': 0
+                }
+            }
+
+            if (fight.kill) {
+                if (!bosses[fight.name][difficulty].kills) {
+                    bosses[fight.name][difficulty].firstKill = report.start + fight.start_time;
+                }
+
+                ++bosses[fight.name][difficulty].kills;
+            } else if (fight.bossPercentage > 0 && !bosses[fight.name][difficulty].kills) {
+                ++bosses[fight.name][difficulty].wipes;
+            }
+        }
+
+        if (!hadMatchingBossFights) {
+            throw 'no bosses found matching that text.'
+        }
+
+        return bosses
+    }
+
+    _assembleKillCounts (params, reports) {
+        let str = '', bossKills = {};
+
+        for (const report of reports) {
+            bossKills = this._getKillCountEx(params, bossKills, report);
+        }
+
+        for (const boss of Object.keys(bossKills)) {
             str += `**${boss}**\n`
 
-            for (const difficulty of Object.keys(bosses[boss])) {
-                const stats = bosses[boss][difficulty]
+            for (const difficulty of Object.keys(bossKills[boss])) {
+                const stats = bossKills[boss][difficulty]
 
                 str += `\n  _${difficulty}_: `
                 if (stats.kills) {
@@ -836,6 +891,37 @@ class AttendanceModule extends CommandModule {
         return reports
     }
 
+    async _filterReportsWithBosses(params, reports) {
+        const finalReports = [];
+        let foundBossNames = false, bossNamesEnded = 0, reportsToTryAfterEnd = 20
+
+        for (let report of reports.reverse()) {
+            report = await this._wcl._getCombatReportPromise(report)
+
+            try {
+                this._getKillCountEx(params, {}, report);
+                finalReports.push(report)
+
+                foundBossNames = true;
+                bossNamesEnded = 0;
+            } catch (err) {
+                if (foundBossNames) {
+                    ++bossNamesEnded;
+                }
+            }
+
+            if (foundBossNames && bossNamesEnded > reportsToTryAfterEnd) {
+                break;
+            }
+        }
+
+        if (foundBossNames && bossNamesEnded) {
+            return Promise.resolve(finalReports.reverse());
+        }
+
+        return Promise.reject();
+    }
+
     async Message (message) {
         const params = this._getParams(message)
         const args = this._getArguments(params)
@@ -854,11 +940,13 @@ class AttendanceModule extends CommandModule {
                 throw 'which boss?'
             }
 
-            return this._getReports(120)
-                .then(this._wcl.fetchCombatReports.bind(this._wcl))
-                .then(this._filterReports.bind(this, args.filter))
-                .then(this._getKillCounts.bind(this, params))
-                .then(this._assembleKillCounts.bind(this))
+            let foundBossNames = false, bossNamesEnded = 0, reportsToTryAfterEnd = 20
+            let kills, killCounts;
+            let bossKills = {}
+
+            return this._wcl.getListOfLogs()
+                .then(this._filterReportsWithBosses.bind(this, params))
+                .then(this._assembleKillCounts.bind(this, params));
         }
 
         if (trigger === 'missed') {

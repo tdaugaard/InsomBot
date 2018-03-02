@@ -25,11 +25,11 @@ class WarcraftLogs {
         }, (err, res, reports) => {
             Common.logRequestCompletion(logger, endpoint, err, res)
 
-            if (err) {
+            if (err || res.statusCode !== 200) {
                 defer.reject(err)
             } else if (typeof reports !== 'object') {
                 defer.reject('Warcraft Logs is quite possibly down for maintenance as they did not return a valid response.')
-            } else if (res.statusCode === 200) {
+            } else {
                 defer.resolve(reports)
             }
         })
@@ -51,6 +51,20 @@ class WarcraftLogs {
                 defer.resolve(results)
             }
         )
+
+        return defer.promise
+    }
+
+    _getCombatReportPromise (report) {
+        const defer = deferred()
+
+        this._getCombatReport(report, function(err, res){
+            if (err) {
+                return defer.reject(err.error)
+            }
+
+            defer.resolve(res)
+        });
 
         return defer.promise
     }
