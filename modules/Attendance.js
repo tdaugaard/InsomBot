@@ -91,7 +91,7 @@ class AttendanceModule extends CommandModule {
 
         cachedRequest.setCacheDirectory(this.bot.config.cacheDirectory)
 
-        if (this.config.trials && this.config.trials.raidDays) {
+        if (this.config.trials && this.config.trials.raidDays && this.config.trials.check) {
             const rule = new schedule.RecurrenceRule();
             rule.dayOfWeek = this.config.trials.raidDays;
             rule.hour = 0;
